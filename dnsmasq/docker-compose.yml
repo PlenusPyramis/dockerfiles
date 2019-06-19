@@ -1,0 +1,18 @@
+version: '3.4'
+
+services:
+  dnsmasq:
+    image: leopere/dnsmasq
+    restart: always
+    ports:
+      - '53:53/tcp'
+      - '53:53/udp'
+    volumes:
+      - './dnsmasq.conf:/etc/dnsmasq.conf'
+    cap_add:
+      - NET_ADMIN
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200k"
+        max-file: "10"

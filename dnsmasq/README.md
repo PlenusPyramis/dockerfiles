@@ -4,7 +4,13 @@ DNS / DHCP / TFTP server
 
 Includes PXE boot for debian-stretch netboot.
 
-Use docker `--network host` in order to bind to DNS and DHCP ports. 
+Assuming you have a dnsmasq configuration in `$HOME/dnsmasq.conf`, you can start
+the container like so:
 
-Must use docker `--priviliged` if using TFTP.
+```
+sudo docker run --rm -it --privileged --network host -v $HOME/dnsmasq.conf:/etc/dnsmasq.conf plenuspyramis/dnsmasq
+```
+
+`--privileged` and `--network host` are only required if you use DHCP/TFTP on a
+real host network interface.
 

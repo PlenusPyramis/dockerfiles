@@ -106,7 +106,7 @@ set menu_color_highlight=white/blue
 
 menuentry 'Automated Install in 5..4..3..2..1.. ' {
     set background_color=black
-    linux    /debian-installer/amd64/linux vga=788 --- auto=true interface=$CLIENT_INTERFACE netcfg/dhcp_timeout=60 netcfg/choose_interface=$CLIENT_INTERFACE priority=critical preseed/url=tftp://$PUBLIC_IP/preseed/\${net_default_mac}.cfg quiet
+    linux    /debian-installer/amd64/linux vga=788 --- auto=true interface=$CLIENT_INTERFACE netcfg/dhcp_timeout=60 netcfg/choose_interface=$CLIENT_INTERFACE priority=critical preseed/url=tftp://$PUBLIC_IP/preseed/\${net_default_mac}.cfg DEBCONF_DEBUG=5 quiet
     initrd   /debian-installer/amd64/initrd.gz
 }
 set default="0"
@@ -132,7 +132,7 @@ cat <<EOF > /tftp/debian-installer/amd64/boot-screens/86-13-03-15-99-6f.cfg
 label autoinstall
         menu label ^Automated Install in 5..4..3..2..1..
         kernel debian-installer/amd64/linux
-        append vga=788 initrd=debian-installer/amd64/initrd.gz --- auto=true interface=$CLIENT_INTERFACE netcfg/dhcp_timeout=60 netcfg/choose_interface=$CLIENT_INTERFACE priority=critical preseed/url=tftp://$PUBLIC_IP/preseed/86-13-03-15-99-6f.cfg quiet
+        append vga=788 initrd=debian-installer/amd64/initrd.gz --- auto=true interface=$CLIENT_INTERFACE netcfg/dhcp_timeout=60 netcfg/choose_interface=$CLIENT_INTERFACE priority=critical preseed/url=tftp://$PUBLIC_IP/preseed/86-13-03-15-99-6f.cfg DEBCONF_DEBUG=5 quiet
 default autoinstall
 timeout 5
 EOF

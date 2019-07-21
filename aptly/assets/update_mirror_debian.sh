@@ -1,15 +1,10 @@
 #! /usr/bin/env bash
 set -e
 
-# Automate the initial creation and update of a Debian package mirror in aptly
+# Minimal debian mirror
 
-# The variables (as set below) will create a mirror of the Debian jessie repo 
-# with the main and update components. If you do mirror these, you'll want to
-# include "deb http://security.debian.org jessie/updates main" in your sources.list
-# file or mirror it similarly as done below to keep up with security updates.
-
-DEBIAN_RELEASE=stretch
-UPSTREAM_URL="http://deb.debian.org/debian/"
+DEBIAN_RELEASE=${DEBIAN_RELEASE:-buster}
+DEBIAN_MIRROR=${DEBIAN_MIRROR:-"http://debian.csail.mit.edu/debian/"}
 COMPONENTS=( main )
 REPOS=( ${DEBIAN_RELEASE} ${DEBIAN_RELEASE}-updates )
 
@@ -21,7 +16,7 @@ for component in ${COMPONENTS[@]}; do
     if [[ $? -ne 0 ]]; then
       echo "Creating mirror of ${repo} repository."
       aptly mirror create \
-        -architectures=amd64 ${repo} ${UPSTREAM_URL} ${repo} ${component}
+            -architectures=amd64 -filter-with-deps -filter="apparmor|apt-listchanges|apt-utils|base-passwd|bash|bash-completion|bind9-host|busybox|bzip2|console-setup|dash|debconf-i18n|debian-faq|dialog|diffutils|discover|dmidecode|doc-debian|efibootmgr|eject|findutils|firmware-linux-free|gdbm-l10n|geoip-database|grep|grub-efi-amd64|grub-efi-amd64-signed|gzip|hdparm|hostname|iamerican|ibritish|ifupdown|init|installation-report|iptables|iputils-ping|isc-dhcp-client|isc-dhcp-common|iso-codes|krb5-locales|laptop-detect|less|liblockfile-bin|libnss-systemd|libpam-systemd|libsasl2-modules|linux-image-amd64|logrotate|lsb-release|lsof|lvm2|man-db|manpages|nano|ncurses-bin|ncurses-term|netcat-traditional|os-prober|pciutils|perl|powermgmt-base|publicsuffix|python|reportbug|rsyslog|sed|shim-signed|sysvinit-utils|task-english|task-ssh-server|telnet|traceroute|tzdata|usbutils|util-linux-locales|vim-tiny|wamerican|wget|whiptail|xauth|xz-utils" ${repo} ${DEBIAN_MIRROR} ${repo} ${component}
     fi
   done
 done

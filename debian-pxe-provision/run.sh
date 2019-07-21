@@ -122,22 +122,6 @@ label default
     menu label ^Ooops, this machine has no preseed configuration.
 EOF
 
-cat <<EOF > /tftp/pxelinux.cfg/01-86-13-03-15-99-6f
-path debian-installer/amd64/boot-screens/
-default debian-installer/amd64/boot-screens/vesamenu.c32
-include debian-installer/amd64/boot-screens/86-13-03-15-99-6f.cfg
-EOF
-
-cat <<EOF > /tftp/debian-installer/amd64/boot-screens/86-13-03-15-99-6f.cfg
-label autoinstall
-        menu label ^Automated Install in 5..4..3..2..1..
-        kernel debian-installer/amd64/linux
-        append vga=788 initrd=debian-installer/amd64/initrd.gz --- auto=true interface=$CLIENT_INTERFACE netcfg/dhcp_timeout=60 netcfg/choose_interface=$CLIENT_INTERFACE priority=critical preseed/url=tftp://$PUBLIC_IP/preseed/86-13-03-15-99-6f.cfg DEBCONF_DEBUG=5 quiet
-default autoinstall
-timeout 5
-EOF
-
-
 ####
 #### Check for preseed configurations
 mkdir /tftp/preseed
@@ -152,6 +136,21 @@ for mac in $(cat $DHCP_HOSTS | cut -d ',' -f 1); do
     else
         cp $PRESEED /tftp/preseed/$mac.cfg
         cp $PRESEED /tftp/preseed/$mac_with_colons.cfg
+        cat <<EOF > /tftp/pxelinux.cfg/01-$mac
+path debian-installer/amd64/boot-screens/
+default debian-installer/amd64/boot-screens/vesamenu.c32
+include debian-installer/amd64/boot-screens/$mac.cfg
+EOF
+
+        cat <<EOF > /tftp/debian-installer/amd64/boot-screens/$mac.cfg
+label autoinstall
+        menu label ^Automated Install in 5..4..3..2..1..
+        kernel debian-installer/amd64/linux
+        append vga=788 initrd=debian-installer/amd64/initrd.gz --- auto=true interface=$CLIENT_INTERFACE netcfg/dhcp_timeout=60 netcfg/choose_interface=$CLIENT_INTERFACE priority=critical preseed/url=tftp://$PUBLIC_IP/preseed/$mac.cfg DEBCONF_DEBUG=5 quiet
+default autoinstall
+timeout 5
+EOF
+
     fi
 done
 if [ $MISSING_PRESEEDS -gt 0 ]; then

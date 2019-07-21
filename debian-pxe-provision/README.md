@@ -9,6 +9,12 @@ interface (specified by `INTERFACE`) connected to the same LAN as your client
 machines. It only serves DHCP to the clients that you explicitly list in
 `dhcp_hosts.txt`. 
 
+There is optional support for hosting a
+[lazy-distro-mirror](https://github.com/EnigmaCurry/lazy-distro-mirrors) so that
+you can cache the portions of the debian mirror you are downloading, for
+speeding up subsequent installs. You can also set `DEBIAN_MIRROR` to your own
+mirror location if you already have one.
+
 This container is intended to be short-lived, and only running when you actually
 want to be doing installations. Treat this a bit like a loaded gun, with a few
 safety mechanisms.
@@ -22,13 +28,13 @@ safety mechanisms.
 These environment variables can be set for the container. The ones without a
 default must be set, or the container will complain.
 
-| Environment Variable | Default              | Description                                             |
-|----------------------|----------------------|---------------------------------------------------------|
-| INTERFACE            |                      | The host network interface to bind to. (eg. eth0, eno1) |
-| CLIENT_INTERFACE     | eno1                 | The name of the client network interface to configure.  |
-| DNS_PRIMARY          | 1.0.0.1              | Primary DNS server                                      |
-| DNS_SECONDARY        | 1.1.1.1              | Secondary DNS server                                    |
-| DHCP_HOSTS           | /data/dhcp_hosts.txt | The path to the dnsmasq hosts file inside the container |
+| Environment Variable | Default                             | Description                                                     |
+|----------------------|-------------------------------------|-----------------------------------------------------------------|
+| INTERFACE            |                                     | The host network interface to bind to. (eg. eth0, eno1)         |
+| CLIENT_INTERFACE     | eno1                                | The name of the client network interface to configure.          |
+| DHCP_HOSTS           | /data/dhcp_hosts.txt                | The path to the dnsmasq hosts file inside the container         |
+| DEBIAN_MIRROR        | http://debian.csail.mit.edu/debian/ | The upstream debian mirror for clients to use                   |
+| LAZY_MIRROR          | false                               | Whether to turn on the local lazy-mirror of the upstream mirror |
 
 ## Running
 
@@ -145,6 +151,60 @@ dnsmasq-tftp: TFTP root is /tftp/
 ```
 
 Boot your clients and they should go directly into the debian installer over the network.
+
+## Lazy mirror
+
+If you are provisioning more than a handful of machines, you will want to host
+your own local mirror. You can create a full mirror with a tool like
+[aptly](https://www.aptly.info/) - the main debian archive mirror is around
+64GB. Alternatively, you can run a
+[lazy-distro-mirror](https://github.com/EnigmaCurry/lazy-distro-mirrors) which
+is a caching proxy server for only the bits you actually need.
+
+Here's the idea:
+
+ * You set `DEBIAN_MIRROR` normally. Choose a fast mirror from [the offical
+   debian mirror list](https://www.debian.org/mirror/list). **Your nodes will
+   always use this URL, both during install, and after install.**
+ * The trick is that `debian-pxe-provision` is a DNS server that tells PXE
+   booted clients to use a different IP address for the `DEBIAN_MIRROR`. It
+   overrides the DNS for whatever domain your chosen `DEBIAN_MIRROR` has, such
+   that **during install DEBIAN_MIRROR will actually resolve to the the lazy
+   mirror IP address**. This will save you bandwidth as your nodes will retrieve
+   packages from the local lazy mirror, but they will still think they are
+   getting it from the real mirror because they are using the same URL always.
+ * Once the nodes reboot, they will be using their regular DNS server, with no
+   spoofed entries. So from then on, those nodes will use the real
+   `DEBIAN_MIRROR`.
+ * This way the lazy mirror doesn't need to stay running indefinitely, it only
+   needs to run when you are doing installs.
+   
+   
+Configuire a lazy mirror on the same docker server running
+`debian-pxe-provision`:
+
+```
+mkdir -p /etc/containers/lazy-distro-mirrors
+cat <<EOF > /etc/containers/lazy-distro-mirrors/config.yaml
+mirrors:
+  debian.csail.mit.edu: http://debian.csail.mit.edu 
+EOF
+```
+
+Make sure that the mirror you configure is the same one as
+`debian-pxe-provision` environment `DEBIAN_MIRROR` variable.
+
+Now start the lazy mirror:
+
+```
+docker run \
+  --name lazy-distro-mirrors \
+  -d --restart=always \
+  --publish 80:8080 \
+  --volume /etc/containers/lazy-distro-mirrors:/docker_configurator/user \
+  --volume lazy-distro-mirrors:/var/spool/squid \
+enigmacurry/lazy-distro-mirrors
+```
 
 ## Development loop
 

@@ -42,9 +42,9 @@ PUBLIC_IP=${PUBLIC_IP:-$(ip addr show dev $INTERFACE | grep 'state UP' -A2 | tai
 SUBNET=$(echo "$PUBLIC_IP" | cut -d '.' -f 1,2,3).0
 CLIENT_INTERFACE=${CLIENT_INTERFACE:-eno1}
 GATEWAY=$(/sbin/ip route | awk '/default/ { print $3 }')
-DNS_PRIMARY=${DNS_PRIMARY:-1.0.0.1}
-DNS_SECONDARY=${DNS_SECONDARY:-1.1.1.1}
 DHCP_BOOT=${DHCP_BOOT:-debian-installer/amd64/bootnetx64.efi}
+DEBIAN_MIRROR=${DEBIAN_MIRROR:-http://debian.csail.mit.edu/debian/}
+DEBIAN_DOMAIN=$(echo $DEBIAN_MIRROR | awk -F[/:] '{print $4}')
 
 #### Main dnsmasq config file generated from environment variables:
 cat <<EOF > /etc/dnsmasq.conf
@@ -52,8 +52,13 @@ cat <<EOF > /etc/dnsmasq.conf
 interface=$INTERFACE
 bind-interfaces
 
-# Turn off dns server:
-port=0
+no-resolv
+server=1.0.0.1
+server=1.1.1.1
+strict-order
+
+## Override DNS for DEBIAN_MIRROR:
+address=/$DEBIAN_DOMAIN/$PUBLIC_IP
 
 ## Only serve static leases to specific MAC addresses:
 dhcp-range=$SUBNET,static
@@ -62,7 +67,7 @@ dhcp-boot=$DHCP_BOOT,pxeserver,$PUBLIC_IP
 ## Specify gateway
 dhcp-option=3,$GATEWAY
 ## Specify DNS servers
-dhcp-option=6,$DNS_PRIMARY,$DNS_SECONDARY
+dhcp-option=6,$PUBLIC_IP
 
 # Legacy BIOS (non-UEFI) should boot pxelinux instead:
 pxe-service=X86PC, "Boot BIOS PXE", pxelinux.0

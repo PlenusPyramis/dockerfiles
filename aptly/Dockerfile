@@ -53,5 +53,8 @@ RUN echo "daemon off;" >> /etc/nginx/nginx.conf
 # Bind mount location
 VOLUME [ "/opt/aptly" ]
 
+# Debian package keys
+RUN gpg --no-default-keyring --keyring trustedkeys.gpg --keyserver pool.sks-keyservers.net --recv-keys 04EE7237B7D453EC 648ACFD622F3D138 EF0F382A1A7B6500 DCC9EFBF77E11517
+
 # Execute Startup script when container starts
 ENTRYPOINT [ "/opt/startup.sh" ]

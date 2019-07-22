@@ -1,0 +1,16 @@
+### This is the *default* config file that gets baked into the container build.
+### You only need to edit this file if you are building your own image.
+### Instead, map a User config via a docker volume at runtime:
+###     -v your_config.yaml:/config/config.yaml
+### The User config maps into the container at /config/config.yaml
+### It will be merged with /config/default.yaml (that's this file.)
+
+# Template map -
+#   This is a list of all the config template files and the path to
+#   render them to. Example:
+
+template_map:
+  my_config.cfg.mako: /etc/my_app/my_config.cfg
+
+owner: nobody
+permissions: "0600"

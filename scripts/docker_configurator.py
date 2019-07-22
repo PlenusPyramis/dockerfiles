@@ -16,8 +16,11 @@ because everyone does it differently. This creates a standard way of
 doing it for containers that I write. A single file to configure
 everything.
 
+See the included example project:  `docker_configurator_example`
+
 ---------------------------------------------------------------------------
 
+Copyright (c) 2019 PlenusPyramis
 Copyright (c) 2015 Ryan McGuire
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -47,37 +50,96 @@ import logging
 import argparse
 import os
 import shutil
+import collections
 
 logging.basicConfig(level=logging.INFO)
 logger=logging.getLogger("docker_configurator")
 
-class DockerConfigurator(object):
-    """Reads a yaml config file and creates application config files from
-    Mako templates"""
-    def __init__(self, config_path="/config"):
-        # Load the default config:
-        default_config = os.path.join(config_path,"default.yaml")
-        self.config = self._load_config(default_config)
-        logger.info("Default configuration loaded from {}".format(default_config))
-        # Merge with the user config, if available:
-        user_config = os.path.join(config_path,"config.yaml")
-        if os.path.exists(user_config):
-            self.config.update(self._load_config(user_config))
-            logger.info("User configuration loaded from {}".format(user_config))
+def deep_merge(*dicts):
+    """
+    Non-destructive deep-merge of multiple dictionary-like objects
+
+    >>> a = { 'first' : { 'all_rows' : { 'pass' : 'dog', 'number' : '1', 'recipe':['one','two'] } } }
+    >>> b = { 'first' : { 'all_rows' : { 'fail' : 'cat', 'number' : '5', 'recipe':['three'] } } }
+    >>> c = deep_merge(a, b)
+    >>> a == { 'first' : { 'all_rows' : { 'pass' : 'dog', 'number' : '1', 'recipe':['one','two'] } } }
+    True
+    >>> b == { 'first' : { 'all_rows' : { 'fail' : 'cat', 'number' : '5', 'recipe':['three'] } } }
+    True
+    >>> c == { 'first' : { 'all_rows' : { 'pass' : 'dog', 'fail' : 'cat', 'number' : '5', 'recipe':['three'] } } }
+    True
+    >>> c == deep_merge(a, b, c)
+    True
+    """
+    # Wrap the merge function so that it is no longer destructive of its destination:
+    def merge(source, destination):
+        # Thanks @_v1nc3nt_ https://stackoverflow.com/a/20666342/56560
+        if isinstance(destination, collections.abc.Mapping):
+            for key, value in source.items():
+                if isinstance(value, dict):
+                    node = destination.setdefault(key, {})
+                    merge(value, node)
+                else:
+                    destination[key] = value
+    final = {}
+    for d in dicts:
+        merge(d, final)
+    return final
+
+def load_merged_config(config_path="/config"):
+    default_config_path = os.path.join(config_path,"default.yaml")
+    user_config_path = os.path.join(config_path, "config.yaml")
+
+    with open(default_config_path) as f:
+        default_config = yaml.safe_load(f)
+        if default_config is None:
+            raise AssertionError('Default config is empty: {}'.format(default_config_path))
+        logger.info("Default configuration loaded from {}".format(default_config_path))
+
+    if os.path.exists(user_config_path):
+        with open(user_config_path) as f:
+            user_config = yaml.safe_load(f)
+            logger.info("User configuration loaded from {}".format(user_config_path))
+    else:
+        user_config = {}
+        logger.warning("User configuration was not found. Using default config only.")
+    return deep_merge(default_config, user_config)
+
+def render_to_files(template, output, **params):
+    def write(path, data):
+        if os.path.exists(path):
+            logger.warning("Overwriting existing file: {}".format(path))
+        with open(path, 'w') as f:
+            f.write(data)
+    try:
+        logging.info("Rendering template: {} to file(s): {}".format(template.uri, output))
+        data = template.render(**params)
+        if type(output) == str:
+            write(output, data)
         else:
-            logger.warning("User configuration was not found. Copying default config to {}".format(user_config))
-            shutil.copyfile(default_config, user_config)
-        # Setup templates
+            for out in output:
+                write(out, data)
+        return data
+    except:
+        print(mako_exceptions.text_error_template().render())
+        raise
+
+class DockerConfigurator(object):
+    """Reads a yaml config file and creates application config files from Mako templates
+
+    The config file should have a key called 'template_map' which is a map of
+    templates to final system paths.
+
+    # Example yaml for config.yaml or default.yaml:
+    template_map:
+     - my_config.mako: /etc/my_config
+     - my_script.sh.mako: /usr/local/bin/cool_script
+    """
+    def __init__(self, config_path="/config"):
+        self.config = load_merged_config(config_path)
         self.template_lookup = TemplateLookup(directories=[os.path.join(config_path, "templates")])
 
-    def _load_config(self, yaml_config_path):
-        with open(yaml_config_path) as f:
-            data = yaml.safe_load(f)
-        if data is None:
-            raise AssertionError('YAML config is empty')
-        return data
-
-    def configure(self, template_map=None):
+    def write_configs(self, template_map=None):
         """Create config files from templates
 
         template_map is a dictionary of template files to config file locations to create
@@ -94,15 +156,8 @@ class DockerConfigurator(object):
             if not os.path.exists(directory):
                 logger.info("Creating directory: {}".format(directory))
                 os.makedirs(directory)
-            logger.info("Rendering template {} to {}".format(template_name, config_path))
-            if os.path.exists(config_path):
-                logger.warning("Overwriting existing config file: {}".format(config_path))
-            with open(config_path, 'w') as f:
-                try:
-                    f.write(template.render(**self.config))
-                except:
-                    print(mako_exceptions.text_error_template().render())
-                    raise
+
+            render_to_files(template, config_path, **self.config)
 
 def main():
     parser = argparse.ArgumentParser(description='Docker Configurator',
@@ -111,7 +166,7 @@ def main():
     args = parser.parse_args()
 
     dc = DockerConfigurator(args.config_path)
-    dc.configure()
+    dc.write_configs()
 
 if __name__ == "__main__":
     main()

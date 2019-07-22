@@ -1,0 +1,5 @@
+template_map:
+  second_config.mako: /etc/my_other_app/name.conf
+
+food: pizza
+

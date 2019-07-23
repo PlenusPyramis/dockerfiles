@@ -31,4 +31,14 @@ debian_mirror:
   port: 80
   lazy_mirror: true
 
-clients: []
+installer_priority: high
+
+clients: {}
+
+client_defaults:
+  enabled: false
+  interface: eno1
+  load_firmware: false
+  netmask: 255.255.255.0
+  root_storage: /dev/sda
+

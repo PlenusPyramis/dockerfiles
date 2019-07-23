@@ -9,7 +9,6 @@ RUN mkdir /tftp
 WORKDIR /tftp
 RUN wget -O - ${DEBIAN_MIRROR}/debian/dists/${DEBIAN_DIST}/main/installer-${ARCH}/current/images/netboot/netboot.tar.gz | tar xvz
 
-SHELL ["/bin/ash", "-o", "pipefail", "-c"]
 RUN apk --no-cache add python3 py3-mako py3-yaml dnsmasq bash && \
     mkdir -p /etc/default/ && \
     echo -e "ENABLED=1\nIGNORE_RESOLVCONF=yes" > /etc/default/dnsmasq

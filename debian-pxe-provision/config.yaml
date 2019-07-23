@@ -16,6 +16,7 @@ dns:
 dhcp:
   subnet: 192.168.3.0/24
   netmask: 255.255.255.0
+  domain: app.lan.rymcg.tech
   gateway: 192.168.3.1
   uefi_boot: debian-installer/amd64/bootnetx64.efi
   bios_boot: pxelinux.0
@@ -30,14 +31,13 @@ debian_mirror:
 # Client configurations:
 # Clients must be set enabled=true otherwise they are ignored.
 clients:
-  76-56-b2-48-82-ac:
-    hostname: debian-test
-    ip_address: 192.168.3.22
-    enabled: false
-    root_storage: /dev/sda
-  aa-8d-3c-e7-95-26:
-    hostname: debian-test2
-    ip_address: 192.168.3.25
+  1a-e9-7a-c5-f6-f9:
+    hostname: bios1
+    ip_address: 192.168.3.23
+    interface: ens18
     enabled: true
-    root_storage: /dev/sda
-  
+  12-99-b3-b9-ba-4d:
+    hostname: uefi1
+    ip_address: 192.168.3.25
+    interface: ens18
+    enabled: true

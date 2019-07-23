@@ -2,11 +2,11 @@
 
 Unattended bare metal provisioner via PXE boot and Debian netboot preseed. This
 will boot systems, over the network, with either UEFI or legacy BIOS, and
-automatically install debian on them according to your own preseed files.
+automatically install debian on them.
 
 This runs `dnsmasq` as a DHCP and tftp boot server. It binds to a real host
 interface connected to the same LAN as your client machines. It only serves DHCP
-to the clients that you explicitly list in `dhcp_hosts.txt`.
+to the clients that you explicitly list in `config.yaml`.
 
 There is optional support for hosting a
 [lazy-distro-mirror](https://github.com/EnigmaCurry/lazy-distro-mirrors) so that

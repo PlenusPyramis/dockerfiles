@@ -15,22 +15,19 @@ d-i passwd/username string ${user_name}
 d-i passwd/user-password password ${user_password}
 d-i passwd/user-password-again password ${user_password}
 
-#### Static network config
-d-i netcfg/disable_dhcp boolean true
-d-i netcfg/disable_autoconfig boolean true
-d-i netcfg/dhcp_failed note
-d-i netcfg/dhcp_options select Configure network manually
-d-i netcfg/get_ipaddress string ${ip_address}
-d-i netcfg/get_netmask string ${dhcp['netmask']}
-d-i netcfg/get_gateway string ${dhcp['gateway']}
-d-i netcfg/get_nameservers string ${public_ip}
-d-i netcfg/confirm_static boolean true
+#### Network
+d-i netcfg/choose_interface select ${interface}
+d-i hw-detect/load_firmware boolean ${load_firmware}
+d-i netcfg/hostname string ${hostname}
+d-i netcfg/get_hostname string ${hostname}
+d-i netcfg/get_domain string ${dhcp['domain']}
 
 #### APT
 d-i mirror/country string manual
 d-i mirror/http/hostname string ${debian_mirror['hostname']}
 d-i mirror/http/directory string ${debian_mirror['path']}
 d-i mirror/http/port string ${debian_mirror['port']}
+d-i mirror/http/proxy string
 
 #### Partitioning
 d-i partman-auto/disk string ${root_storage}
@@ -40,6 +37,7 @@ d-i partman-md/device_remove_md boolean true
 d-i partman-lvm/confirm boolean true
 d-i partman-lvm/confirm_nooverwrite boolean true
 d-i partman-auto/choose_recipe select atomic
+d-i partman-auto-lvm/guided_size string max
 d-i partman-partitioning/confirm_write_new_label boolean true
 d-i partman/choose_partition select finish
 d-i partman/confirm boolean true
@@ -48,7 +46,7 @@ d-i partman/confirm_nooverwrite boolean true
 #### Packages
 popularity-contest popularity-contest/participate boolean false
 tasksel tasksel/first multiselect standard, ssh-server
-d-i pkgsel/include string build-essential atftp
+d-i pkgsel/include string build-essential
 
 #### UEFI specific
 d-i partman-efi/non_efi_system true
@@ -66,4 +64,4 @@ d-i grub-installer/bootdev  string /dev/sda
 d-i finish-install/reboot_in_progress note
 
 #### Run custom handler at the end:
-#d-i preseed/late_command string sh -c "atftp -g -r preseed/$MAC_postinstall.sh -l /tmp/$MAC_postinstall.sh $SERVER 69 && sh -x /tmp/$MAC_postinstall.sh"
+d-i preseed/late_command string chroot /target sh -c "/usr/bin/apt-get install -y atftp && /usr/bin/atftp -g -r preseed/${mac}_postinstall.sh -l /tmp/postinstall.sh ${public_ip} 69 && /usr/bin/bash -x /tmp/postinstall.sh && /usr/bin/apt-get purge -y atftp"

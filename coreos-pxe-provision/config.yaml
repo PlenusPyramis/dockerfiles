@@ -1,13 +1,9 @@
-# User config for menu-pxe-provision
+# User config for coreos-pxe-provision
 
 # Name of the host interface to bind the DNS/DHCP/TFTP services to:
 interface: eth0
 # The IP address of the docker server:
 public_ip: 10.99.0.2
-# The IP address of the lazy mirror docker server:
-lazy_mirror_ip: 10.99.0.2
-lazy_mirrors:
-  - debian.csail.mit.edu
 
 # Upstream DNS servers:
 dns:
@@ -18,29 +14,37 @@ dns:
 dhcp:
   range_start: 10.99.0.10
   range_end: 10.99.0.253
-  netmask: 255.255.255.0
-  lease_time: 24h
   domain: provision.lan.rymcg.tech
   gateway: 10.99.0.1
-  uefi_boot: debian-installer/amd64/bootnetx64.efi
-  bios_boot: pxelinux.0
 
 menu_entries:
-  - message: Debian buster netinstall
-    kernel: /debian-installer/amd64/linux
-    initrd: /debian-installer/amd64/initrd.gz
-    args: DEBCONF_DEBUG=5 quiet
-  - message: Fedora CoreOS 30
+  - message: "Auto-Install Fedora CoreOS 30 (THIS WILL WIPE DRIVES!)"
     kernel: coreos30/images/vmlinuz
     initrd: coreos30/images/initramfs.img
-    args: ip=dhcp rd.neednet=1 coreos.inst=yes coreos.inst.install_dev=sda coreos.inst.image_url=http://10.99.0.2:8000/img/fedora-coreos-30.20190716.1-metal.raw.xz coreos.inst.ignition_url=http://10.99.0.2:8000/ignition/default_ignition.ign
+    image: fedora-coreos-30.20190716.1-metal.raw.xz
+    
+auto_install:
+  enabled: false
+  entry: 0
 
 ssh_keys:
   - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDPuwf6ID+p8LAYBORP9HndBOhlKBDRhknVtYMEim8eflQDD9Uw0tMoEbHFemMvkZl9lbUatNlq7twSnumjwUv23LX48h9sn4enoo8D8xtE7tYh0jIRmyIG/fDMRLXGT+k7rP4Piky7j8kYh9mNHKmEwL4El1Fqe/R1xoHF6NyXKXxug3nCksMwlvhfBUPDo/zktxQ1Ddy34oAwS3Uo2/aur9lGJBqYEaUyHEBhbnq5Nm1xMN8ZWC3GQqjFlS8m6zu78P2OLGTL1o2vwbAyVaarO6tK6KUcWbxqmjK1igcZTJL0OLltRIvZn/4ELpPXzNl7spGAt5ylwJSAZP75zZ7F ryan@Maldekian
 
 isos:
   fedora-coreos-30.20190725.0-installer.iso:
+    url: https://builds.coreos.fedoraproject.org/prod/streams/testing/builds/30.20190725.0/x86_64/fedora-coreos-30.20190725.0-installer.iso
+    destination: /data/isos/fedora-coreos-30.20190725.0-installer.iso
     mount: /data/coreos30
+    sha256: 77f484a3ba2f5891c55301f0bc5278b795d5ae278f8a5b2003bcdaf100457751
 images:
   fedora-coreos-30.20190716.1-metal.raw.xz:
-    destination: /data/img/fedora-coreos-30.20190716.1-metal.raw.xz
+    url: https://builds.coreos.fedoraproject.org/prod/streams/testing/builds/30.20190725.0/x86_64/fedora-coreos-30.20190725.0-metal.raw.xz
+    destination: /data/images/fedora-coreos-30.20190716.1-metal.raw.xz
+    sha256: f39ea47b716d946adb830d9d1121d0fadf57890fd6909b1d57933f37ad75c8da
+    
+clients:
+  be-e8-58-c1-85-f8:
+    hostname: bios1
+    interface: ens18
+    install_dev: sda
+    ip_address: 10.99.0.3

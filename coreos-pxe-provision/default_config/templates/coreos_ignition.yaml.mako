@@ -1,3 +1,4 @@
+<% import uuid %>
 variant: fcos
 version: 1.0.0
 passwd:
@@ -36,3 +37,25 @@ systemd:
 
         [Install]
         WantedBy=multi-user.target
+storage:
+  files:
+    - path: /etc/NetworkManager/system-connections/${interface}.nmconnection
+      contents:
+        inline: |
+         [connection]
+         id=${interface}
+         uuid=${uuid.uuid4()}
+         type=802-3-ethernet
+         autoconnect=true
+
+         [ipv4]
+         method=manual
+% for ip in dns: 
+         dns=${ip}
+% endfor
+         addresses=${ip_address}/${cidr}
+         gateway=${dhcp['gateway']}
+
+         [802-3-ethernet]
+         mac-address=${mac.replace('-',':')}
+      mode: 0600

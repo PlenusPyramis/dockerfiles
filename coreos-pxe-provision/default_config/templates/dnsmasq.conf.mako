@@ -9,17 +9,12 @@ server=${ip}
 % endfor
 strict-order
 
-% if debian_mirror.get('lazy_mirror', False):
-## Override DNS for the upstream debian mirror with a local caching proxy:
-address=/${debian_mirror['hostname']}/${lazy_mirror_ip}
-% endif
-
 ## Only serve static leases to specific MAC addresses:
 dhcp-range=${dhcp['range_start']},${dhcp['range_end']},${dhcp['netmask']},${dhcp['lease_time']}
 ## Specify gateway for client
 dhcp-option=3,${dhcp['gateway']}
 ## Specify DNS server for client
-dhcp-option=6,${public_ip}
+dhcp-option=6,${dns[0]},${dns[1]}
 ## iPXE http://forum.ipxe.org/showthread.php?tid=6077
 dhcp-match=set:ipxe,175 # iPXE sends a 175 option.
 dhcp-boot=tag:!ipxe,${dhcp['uefi_boot']},pxeserver,${public_ip}

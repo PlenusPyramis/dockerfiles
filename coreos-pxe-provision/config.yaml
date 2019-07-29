@@ -42,8 +42,10 @@ images:
     sha256: f39ea47b716d946adb830d9d1121d0fadf57890fd6909b1d57933f37ad75c8da
     
 clients:
-  be-e8-58-c1-85-f8:
-    hostname: bios1
+  ba-bc-d3-8d-e5-5e:
+    hostname: 904
     interface: ens18
     install_dev: sda
-    ip_address: 10.99.0.3
+    ip_address: 10.99.0.4
+    vga: false
+

@@ -15,7 +15,6 @@
 #
 template_map:
  dnsmasq.conf.mako: /etc/dnsmasq.conf
- grub.cfg.mako: /data/debian-installer/amd64/grub/grub.cfg
  dhcp_hosts.txt.mako: /etc/dhcp_hosts.txt
  nginx.conf.mako: /etc/nginx/nginx.conf
  pxelinux_default.cfg.mako: /data/pxelinux.cfg/default
@@ -40,6 +39,7 @@ client_defaults:
   interface: ens18
   cidr: 24
   install_dev: sda
+  vga: false
 
 images: {}
 isos: {}

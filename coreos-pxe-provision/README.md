@@ -50,6 +50,7 @@ environment. Things you will maybe want to change in your own [config.yaml](conf
      * `ip_address` the static ip address to give the client.
      * `interface` the name of the main ethernet interface of the client.
      * `install_dev` the device name to install on (omit `/dev/`).
+     * `vga` set to true to use VGA console, otherwise default to serial console.
 
 ## Known bugs
 

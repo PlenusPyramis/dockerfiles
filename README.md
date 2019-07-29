@@ -32,7 +32,7 @@ Host docker1
 On your workstation, make sure you have an ssh key:
 
 ```
-if [ -f ~/.ssh/id_rsa ]; then echo already setup; else ssh-keygen -f ~/.ssh/id_rsa; fi
+test -f ~/.ssh/id_rsa_test && echo "already setup" || ssh-keygen -f ~/.ssh/id_rsa_test
 ```
 
 If your server does not yet have your SSH key, install it (you will be prompted

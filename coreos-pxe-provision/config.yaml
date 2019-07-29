@@ -12,10 +12,9 @@ dns:
 
 # DHCP options:
 dhcp:
-  range_start: 10.99.0.10
-  range_end: 10.99.0.253
-  domain: provision.lan.rymcg.tech
+  subnet: 10.99.0.0/24
   gateway: 10.99.0.1
+  domain: provision.lan.rymcg.tech
 
 menu_entries:
   - message: "Auto-Install Fedora CoreOS 30 (THIS WILL WIPE DRIVES!)"

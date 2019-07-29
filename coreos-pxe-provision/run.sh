@@ -16,6 +16,11 @@ echo ""
 sleep 0.5
 echo "### Ignition configs:"
 ls /data/ignition/*.{ign,yaml} | xargs -iXX bash -c "echo XX && cat -n XX"
+echo ""
+
+echo "### Allowed dhcp hosts:"
+cat -n /etc/dhcp_hosts.txt
+echo ""
 
 #### Start the DHCP/tftp server:
 dnsmasq -C /etc/dnsmasq.conf --dhcp-hostsfile /etc/dhcp_hosts.txt --no-daemon

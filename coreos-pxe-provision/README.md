@@ -3,6 +3,8 @@
 A Fedora CoreOS PXE boot server in a docker container, local image caching, and
 automatic ignition file generation, all from one config file.
 
+Tested on Fedora CoreOS version: 30.20190725.0 (2019-07-25T18:54:22Z)
+
  * Edit [config.yaml](config.yaml) for your network environment.
  * Create `clients` entries inside [config.yaml](config.yaml) for all your clients MAC
    addresses, static ip address, and other per-client configs.
@@ -35,8 +37,7 @@ environment. Things you will maybe want to change in your own [config.yaml](conf
    network interface inside that VM.
  * `public_ip` - This is the ip address of the interface on the host. Check `ip addr`.
  * `dhcp`
-   * `range_start` - The first IP address in the range of DHCP offers.
-   * `range_end` - The last IP address in the range of DHCP offers.
+   * `subnet` - the IP subnet of the network to service DHCP requests.
    * `gateway` - The IP address for the gateway for the clients.
  * `autoinstall` - This is turned off by default, when clients boot they will
    stop at the bootloader screen waiting for input. Setting
@@ -52,8 +53,9 @@ environment. Things you will maybe want to change in your own [config.yaml](conf
 
 ## Known bugs
 
-NetworkManager will not work correctly on the first boot. It loads the wrong
-config. Rebooting a *second time* after install should fix it.
+[NetworkManager will not work correctly on the first
+boot](https://github.com/coreos/fedora-coreos-tracker/issues/233). It loads the
+wrong config. Rebooting a *second time* after install should fix it.
 
 ## Dev loop
 

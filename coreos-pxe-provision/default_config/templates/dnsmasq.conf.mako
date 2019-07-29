@@ -10,7 +10,7 @@ server=${ip}
 strict-order
 
 ## Only serve static leases to specific MAC addresses:
-dhcp-range=${dhcp['range_start']},${dhcp['range_end']},${dhcp['netmask']},${dhcp['lease_time']}
+dhcp-range=${dhcp['subnet'].split("/")[0]},static
 ## Specify gateway for client
 dhcp-option=3,${dhcp['gateway']}
 ## Specify DNS server for client

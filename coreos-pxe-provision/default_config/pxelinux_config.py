@@ -20,11 +20,16 @@ def main():
         bootscreen_path = "/data/debian-installer/amd64/boot-screens/{mac}.cfg".format(mac=mac)
 
         client_merged_config = deep_merge(config['client_defaults'], client_config)
+        if client_merged_config.get("vga", False) == True:
+            display_args = "vga=788"
+        else:
+            display_args = "vga=none console=tty0 console=ttyS0"
         render_to_files(pxelinux_template, pxelinux_path, mac=mac)
         render_to_files(bootscreen_template, bootscreen_path,
                         dhcp=config['dhcp'], public_ip=config['public_ip'],
                         mac=mac, menu_entries=config['menu_entries'],
                         auto_install=config['auto_install'],
+                        display_args=display_args,
                         **client_merged_config)
 
 if __name__ == "__main__":

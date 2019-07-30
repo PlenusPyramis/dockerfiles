@@ -1,42 +1,39 @@
-<% import uuid %>
+<% import uuid, crypt %>
 variant: fcos
 version: 1.0.0
 passwd:
   users:
-    - name: core
+    - name: ${username}
+% if password != None:
+      password_hash: ${crypt.crypt(password)}
+% endif
       ssh_authorized_keys:
 % for key in ssh_keys:
         - ${key}
 % endfor
 systemd:
   units:
-    - name: docker.service
-      enabled: false
-      contents: |
-        [Unit]
-        Description=disable docker
-
-        [Service]
-
-        [Install]
-        WantedBy=multi-user.target
-
-    - name: hello.service
+    - name: post-install.service
       enabled: true
       contents: |
         [Unit]
-        Description=hashicorp/http-echo
-        After=network-online.target
+        Description=self-destructing post-install tasks to happen on second boot
+        Type=idle
 
         [Service]
-        TimeoutStartSec=0
-        ExecStartPre=-/bin/podman kill echo-http-server
-        ExecStartPre=-/bin/podman rm echo-http-server
-        ExecStartPre=/bin/podman pull hashicorp/http-echo
-        ExecStart=/bin/podman run --rm hashicorp/http-echo -text="hello" -listen=:8080
+        Type=oneshot
+        ExecStart=/bin/sh -c "rm -f /etc/systemd/system/post-install.service && hostnamectl set-hostname ${hostname} && /sbin/reboot"
+        StandardOutput=journal
 
         [Install]
         WantedBy=multi-user.target
+
+% for unit in units:
+    - name: ${unit['name']}
+      enabled: ${unit['enabled']}
+      contents: "${unit['contents']}"
+% endfor
+
 storage:
   files:
     - path: /etc/NetworkManager/system-connections/${interface}.nmconnection

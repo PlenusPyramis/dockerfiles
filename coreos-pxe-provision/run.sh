@@ -2,7 +2,7 @@
 set -e
 
 #### Template configs from default_config combined with user config:
-python3 /config/docker_configurator.py
+/data/docker_configurator
 python3 /config/download_images.py
 python3 /config/mount_isos.py
 python3 /config/pxelinux_config.py

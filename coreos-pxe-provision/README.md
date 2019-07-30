@@ -51,12 +51,14 @@ environment. Things you will maybe want to change in your own [config.yaml](conf
      * `interface` the name of the main ethernet interface of the client.
      * `install_dev` the device name to install on (omit `/dev/`).
      * `vga` set to true to use VGA console, otherwise default to serial console.
+     * `units` which systemd units to install from templates.
 
 ## Known bugs
 
 [NetworkManager will not work correctly on the first
 boot](https://github.com/coreos/fedora-coreos-tracker/issues/233). It loads the
-wrong config. Rebooting a *second time* after install should fix it.
+wrong config. Rebooting a *second time* after install should fix it. The builtin
+configuration accounts for this and does a total of two reboots during install.
 
 ## Dev loop
 

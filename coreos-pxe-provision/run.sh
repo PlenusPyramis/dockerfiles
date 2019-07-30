@@ -16,6 +16,7 @@ echo ""
 sleep 0.5
 echo "### Ignition configs:"
 ls /data/ignition/*.{ign,yaml} | xargs -iXX bash -c "echo XX && cat -n XX"
+grep -H "^error" /data/ignition/*.ign && echo "Looks like there's an error in the ignition file" && exit 1
 echo ""
 
 echo "### Allowed dhcp hosts:"

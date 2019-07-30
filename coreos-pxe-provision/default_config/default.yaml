@@ -35,11 +35,14 @@ dns:
 clients: {}
 
 client_defaults:
+  hostname: coreos
   enabled: false
   interface: ens18
   cidr: 24
   install_dev: sda
   vga: false
+  username: core
+  password: null
 
 images: {}
 isos: {}

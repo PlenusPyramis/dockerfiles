@@ -55,6 +55,8 @@ import collections
 logging.basicConfig(level=logging.INFO)
 logger=logging.getLogger("docker_configurator")
 
+__version__ = "v0.9.0"
+
 def deep_merge(*dicts):
     """
     Non-destructive deep-merge of multiple dictionary-like objects

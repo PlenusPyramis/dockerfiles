@@ -41,9 +41,15 @@ def requirements():
 
 def get_version():
     if shutil.which('git'):
+        # Find current tag, if any:
         current_tag = subprocess.Popen(
             shlex.split("git tag --points-at HEAD"),
             stdout=subprocess.PIPE).communicate()[0].decode('utf-8').strip()
+        # Remove the program name if the tag includes it:
+        current_tag = current_tag.replace(program_name, "")
+        # Strip seperator characters from the front and back, that were part of
+        # the now mangled tag:
+        current_tag = current_tag.strip("-_")
         if len(current_tag) > 0:
             return current_tag
     return "SNAPSHOT"

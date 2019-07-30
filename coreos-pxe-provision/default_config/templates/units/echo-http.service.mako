@@ -1,6 +1,7 @@
 [Unit]
 Description=hashicorp/http-echo
 After=network-online.target
+Wants=network-online.target
 
 [Service]
 TimeoutStartSec=0

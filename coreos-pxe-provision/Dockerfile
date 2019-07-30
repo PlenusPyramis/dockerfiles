@@ -18,6 +18,5 @@ RUN apk --no-cache add python3 py3-mako py3-yaml py3-requests dnsmasq bash nginx
 
 ADD run.sh /usr/local/bin/run.sh
 ADD default_config /config
-ADD https://raw.githubusercontent.com/PlenusPyramis/dockerfiles/master/scripts/docker_configurator/docker_configurator.py /config/docker_configurator.py
 
 CMD ["/usr/local/bin/run.sh"]

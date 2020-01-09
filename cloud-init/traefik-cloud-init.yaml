@@ -1,0 +1,162 @@
+## template: jinja
+#cloud-config
+
+### Cloud-init for Docker + Traefik. This contains what is called 'User Data'
+### and you copy it, and edit it, to configure your own personal deployment and
+### all of its settings in one file, *this* file. You paste your edited version
+### into the droplet creation screen on Digital Ocean (or theoretically any
+### other cloud-init enabled environment/service) and the rest is automatic.
+
+### This is tested with the Digital Ocean Marketplace Docker application. This
+### script does not install Docker, it assumes that Docker is already
+### installed/ready-to-go in the droplet image. So when creating this droplet,
+### don't choose regular Ubuntu, instead choose the Docker app from the
+### Marketplace tab, which is maintained by Digital Ocean and has an up-to-date
+### Docker version. Then choose the droplet size and other details as you
+### normally would. When you get to one of the checkboxes that says "User Data",
+### check it, and paste this whole edited file (comments and all!) into the text
+### box that appears. When you finish and create the droplet, it will
+### automatically boot and setup everything exactly as you have configured in
+### this file without any further setup. Save this file, and it'll be nice and
+### repeatable next time, just copy and paste. Neat, huh?
+
+### This installs Traefik to listen on tcp ports 80 and 443 and to allow inbound
+### web requests to a test service called whoami, which will show the workings
+### of Traefik routing and automatic TLS certificate generation using Let's
+### Encrypt, and provides an example for creating your own hosted docker apps.
+
+#################################################################################
+### This is a Jinja2 templated cloud-config (as indicated by the very first line.)
+### YOU NEED TO EDIT THE VARIABLES IN THIS SECTION BETWEEN ######### LINES
+## This top section (until 'End variables') is the ONLY part you need to edit
+## unless you're adapting this file to add new hosted apps/containers beyond
+## what is already here.
+
+### This section is for setting jinja variables for use in the rest of this script.
+## Reference https://jinja.palletsprojects.com/en/2.9.x/templates/#assignments
+## Use this Jinja2 syntax: {% set VARIABLE_NAME = VALUE %}
+
+### traefik_domain
+## The main (sub)domain for traefik and all hosted applications. For instance,
+## if traefik_domain == 'd.example.com', all hosted apps will be hosted underneath
+## the '*.d.example.com' subdomain, like 'app1.d.example.com', 'app2.d.example.com',
+## etc. 
+{% set traefik_domain = "d2.rymcg.tech" %}
+
+### letsencrypt_email
+## Your email address used when generating TLS/SSL certificates
+{% set letsencrypt_email = "letsencrypt@enigmacurry.com" %}
+
+### letsencrypt_use_production
+## Start with False. If False, it will use the letsencrypt staging environment
+## (good for testing and development, because it avoids the rate limiting that
+## exists for the production environment. You also don't need any domain name,
+## and you can just use the server via its IP address. But your web browser will
+## complain about the invalid certificate that you must click through to allow.)
+## This should be set to True only when you are ready for a production
+## deployment, when you control a real domain name and DNS, and you want a real
+## TLS/SSL certificate that will be valid in all web browsers. Note that when
+## going to production mode, you will also need to point your own domain name to
+## the IP address of the droplet (or preferably, a floating IP address
+## associated with the droplet, so that you can easily destroy and recreate
+## droplets with new IP addresses.) When True, you need to create a DNS-A record
+## for your traefik_domain as defined above, as well as create a DNS-A wildcard
+## record for "*.<traefik_domain>" so that any subdomain will also resolve to
+## the droplet or floating IP address.
+{% set letsencrypt_use_production = False %}
+
+### End variables - STOP EDITING HERE unless you're developing new hosted apps.
+################################################################################
+
+## Jinja Macros - don't touch these - move along! See how they are used below
+## under write_files.
+{% macro traefik_labels(name, port) -%}
+["traefik.enable=true", "traefik.http.routers.{{ name }}.entrypoints=http", "traefik.http.routers.{{ name }}.rule=Host(`{{ name }}.{{ traefik_domain }}`)", "traefik.http.middlewares.{{ name }}-https-redirect.redirectscheme.scheme=https", "traefik.http.routers.{{ name }}.middlewares={{ name }}-https-redirect", "traefik.http.routers.{{ name }}-secure.entrypoints=https", "traefik.http.routers.{{ name }}-secure.rule=Host(`{{ name }}.{{ traefik_domain }}`)", "traefik.http.routers.{{ name }}-secure.tls=true", "traefik.http.routers.{{ name }}-secure.tls.certresolver=http", "traefik.http.services.portainer.loadbalancer.server.port={{ port }}" ]
+{%- endmacro %}
+
+{% macro traefik_ca_server() -%}
+{% if letsencrypt_use_production %}
+"https://acme-v02.api.letsencrypt.org/directory"
+{% else %}
+"https://acme-staging-v02.api.letsencrypt.org/directory"
+{% endif %}
+{%- endmacro %}
+
+################################################################################
+
+## Jinja templated cloud-config follows:
+write_files:
+  ## acme.json is the file that keeps track of your TLS/SSL certificates as well
+  ## as your Let's Encrypt account details. Hanging onto this file will keep you
+  ## from getting rate-limited in production. When using
+  ## letsencrypt_use_production=False, it doesn't matter so much, as the
+  ## rate-limits are way higher.
+  - path: /opt/containers/traefik/data/acme.json
+    permissions: '0600'
+    content: ""
+  ## traefik.yaml is the main traefik config file and sets the production or
+  ## staging environment (caServer).
+  - path: /opt/containers/traefik/data/traefik.yaml
+    content: |
+      entryPoints:
+        http:
+          address: ":80"
+        https:
+          address: ":443"
+      
+      providers:
+        docker:
+          endpoint: "unix:///var/run/docker.sock"
+          exposedByDefault: false
+      
+      certificatesResolvers:
+        http:
+          acme:
+            caServer: {{ traefik_ca_server() }}
+            email: {{ letsencrypt_email }}
+            storage: acme.json
+            httpChallenge:
+              entryPoint: http
+
+  ## traefik/docker-compose.yaml sets up the Docker containers for Traefik and
+  ## Whoami. Docker itself manages the startup of these containers when the
+  ## droplet reboots (not systemd.) The example for whoami is a basis you can
+  ## use for other apps, the traefik_labels() jinja macro makes standard docker
+  ## labels needed for traefik, easier and more compact.
+  - path: /opt/containers/traefik/docker-compose.yaml
+    content: |
+      version: '3'
+      
+      services:
+        traefik:
+          image: traefik:v2.0
+          container_name: traefik
+          restart: unless-stopped
+          security_opt:
+            - no-new-privileges:true
+          networks:
+            - proxy
+          ports:
+            - 80:80
+            - 443:443
+          volumes:
+            - /etc/localtime:/etc/localtime:ro
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+            - /opt/containers/traefik/data/traefik.yaml:/traefik.yml:ro
+            - /opt/containers/traefik/data/acme.json:/acme.json
+      
+        whoami:
+          image: containous/whoami
+          restart: unless-stopped
+          networks:
+            - proxy
+          labels: {{ traefik_labels('whoami', '80') }}
+
+      networks:
+        proxy:
+          external: true
+
+runcmd:
+  - docker network create proxy
+  - docker-compose -f /opt/containers/traefik/docker-compose.yaml up -d
+

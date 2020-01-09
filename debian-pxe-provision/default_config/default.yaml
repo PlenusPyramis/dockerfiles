@@ -1,0 +1,44 @@
+### This is the *default* config file that gets baked into the container build.
+### You probably don't need to edit this file unless you want to customize the docker image.
+### Instead, map your own config via a docker volume at runtime:
+###     -v your_config.yaml:/config/config.yaml
+### The User config maps into the container at /config/config.yaml
+### It will be merged with /config/default.yaml (that's this file.)
+
+# Template map -
+#   This is a list of all the config template files and the path to
+#   render them to. Example:
+#
+#  template_map:
+#    my_config.mako: /etc/my_app/my_config.cfg
+#    second_config.mako: /etc/my_other_app/name.conf
+#
+template_map:
+ dnsmasq.conf.mako: /etc/dnsmasq.conf
+ grub.cfg.mako: /tftp/debian-installer/amd64/grub/grub.cfg
+ pxelinux_default.cfg.mako: /tftp/pxelinux.cfg/default
+ dhcp_hosts.txt.mako: /etc/dhcp_hosts.txt
+
+interface: eth0
+
+dns:
+  - 1.0.0.1
+  - 1.1.1.1
+
+debian_mirror:
+  hostname: debian.csail.mit.edu
+  path: /debian
+  port: 80
+  lazy_mirror: true
+
+installer_priority: high
+
+clients: {}
+
+client_defaults:
+  enabled: false
+  interface: eno1
+  load_firmware: false
+  netmask: 255.255.255.0
+  root_storage: /dev/sda
+

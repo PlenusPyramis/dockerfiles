@@ -1,0 +1,43 @@
+# User config for debian-pxe-provision
+
+# Name of the host interface to bind the DNS/DHCP/TFTP services to:
+interface: eth0
+# The IP address of the docker server:
+public_ip: 192.168.3.20
+# The IP address of the lazy mirror docker server:
+lazy_mirror_ip: 192.168.3.20
+
+# Upstream DNS servers:
+dns:
+  - 1.0.0.1
+  - 1.1.1.1
+
+# DHCP options:
+dhcp:
+  subnet: 192.168.3.0/24
+  netmask: 255.255.255.0
+  domain: app.lan.rymcg.tech
+  gateway: 192.168.3.1
+  uefi_boot: debian-installer/amd64/bootnetx64.efi
+  bios_boot: pxelinux.0
+
+# Upstream debian mirror URL
+debian_mirror:
+  hostname: debian.csail.mit.edu
+  path: /debian
+  port: 80
+  lazy_mirror: true
+
+# Client configurations:
+# Clients must be set enabled=true otherwise they are ignored.
+clients:
+  1a-e9-7a-c5-f6-f9:
+    hostname: bios1
+    ip_address: 192.168.3.23
+    interface: ens18
+    enabled: true
+  12-99-b3-b9-ba-4d:
+    hostname: uefi1
+    ip_address: 192.168.3.25
+    interface: ens18
+    enabled: true

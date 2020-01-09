@@ -1,0 +1,46 @@
+# User config for menu-pxe-provision
+
+# Name of the host interface to bind the DNS/DHCP/TFTP services to:
+interface: eth0
+# The IP address of the docker server:
+public_ip: 10.99.0.2
+# The IP address of the lazy mirror docker server:
+lazy_mirror_ip: 10.99.0.2
+lazy_mirrors:
+  - debian.csail.mit.edu
+
+# Upstream DNS servers:
+dns:
+  - 1.0.0.1
+  - 1.1.1.1
+
+# DHCP options:
+dhcp:
+  range_start: 10.99.0.10
+  range_end: 10.99.0.253
+  netmask: 255.255.255.0
+  lease_time: 24h
+  domain: provision.lan.rymcg.tech
+  gateway: 10.99.0.1
+  uefi_boot: debian-installer/amd64/bootnetx64.efi
+  bios_boot: pxelinux.0
+
+menu_entries:
+  - message: Debian buster netinstall
+    kernel: /debian-installer/amd64/linux
+    initrd: /debian-installer/amd64/initrd.gz
+    args: DEBCONF_DEBUG=5 quiet
+  - message: Fedora CoreOS 30
+    kernel: coreos30/images/vmlinuz
+    initrd: coreos30/images/initramfs.img
+    args: ip=dhcp rd.neednet=1 coreos.inst=yes coreos.inst.install_dev=sda coreos.inst.image_url=http://10.99.0.2:8000/img/fedora-coreos-30.20190716.1-metal.raw.xz coreos.inst.ignition_url=http://10.99.0.2:8000/ignition/default_ignition.ign
+
+ssh_keys:
+  - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDPuwf6ID+p8LAYBORP9HndBOhlKBDRhknVtYMEim8eflQDD9Uw0tMoEbHFemMvkZl9lbUatNlq7twSnumjwUv23LX48h9sn4enoo8D8xtE7tYh0jIRmyIG/fDMRLXGT+k7rP4Piky7j8kYh9mNHKmEwL4El1Fqe/R1xoHF6NyXKXxug3nCksMwlvhfBUPDo/zktxQ1Ddy34oAwS3Uo2/aur9lGJBqYEaUyHEBhbnq5Nm1xMN8ZWC3GQqjFlS8m6zu78P2OLGTL1o2vwbAyVaarO6tK6KUcWbxqmjK1igcZTJL0OLltRIvZn/4ELpPXzNl7spGAt5ylwJSAZP75zZ7F ryan@Maldekian
+
+isos:
+  fedora-coreos-30.20190725.0-installer.iso:
+    mount: /data/coreos30
+images:
+  fedora-coreos-30.20190716.1-metal.raw.xz:
+    destination: /data/img/fedora-coreos-30.20190716.1-metal.raw.xz

@@ -1,0 +1,80 @@
+# User config for coreos-pxe-provision
+
+# Name of the HOST interface to bind the DNS/DHCP/TFTP services to:
+interface: eth0
+# The IP address of the docker server (whichever one is public facing your PXE clients):
+public_ip: 10.99.0.2
+
+# Upstream DNS servers:
+dns:
+  - 1.0.0.1
+  - 1.1.1.1
+
+# DHCP options:
+dhcp:
+  subnet: 10.99.0.0/24
+  gateway: 10.99.0.1
+  domain: provision.lan.rymcg.tech
+
+## PXELinux bootloader entries
+## The image value must be updated when you update isos and images below.
+menu_entries:
+  - message: "Auto-Install Fedora CoreOS 30 (THIS WILL WIPE DRIVES!)"
+    kernel: coreos30/images/vmlinuz
+    initrd: coreos30/images/initramfs.img
+    image: fedora-coreos-30.20190716.1-metal.raw.xz
+
+## Whether or not to wait at the bootloader prompt before booting.
+## entry is the default menu_entry index to load if enabled is true.
+auto_install:
+  enabled: false
+  entry: 0
+
+## List of SSH keys to install on clients:
+ssh_keys:
+  - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDPuwf6ID+p8LAYBORP9HndBOhlKBDRhknVtYMEim8eflQDD9Uw0tMoEbHFemMvkZl9lbUatNlq7twSnumjwUv23LX48h9sn4enoo8D8xtE7tYh0jIRmyIG/fDMRLXGT+k7rP4Piky7j8kYh9mNHKmEwL4El1Fqe/R1xoHF6NyXKXxug3nCksMwlvhfBUPDo/zktxQ1Ddy34oAwS3Uo2/aur9lGJBqYEaUyHEBhbnq5Nm1xMN8ZWC3GQqjFlS8m6zu78P2OLGTL1o2vwbAyVaarO6tK6KUcWbxqmjK1igcZTJL0OLltRIvZn/4ELpPXzNl7spGAt5ylwJSAZP75zZ7F ryan@Maldekian
+
+## Update these when new versions of CoreOS come out:
+isos:
+  ## The Fedora CoreOS installer iso is unpacked into /data/coreos30
+  ## The linux kernel and initial ramdisk is pulled from here for PXE booting
+  fedora-coreos-30.20190725.0-installer.iso:
+    url: https://builds.coreos.fedoraproject.org/prod/streams/testing/builds/30.20190725.0/x86_64/fedora-coreos-30.20190725.0-installer.iso
+    destination: /data/isos/fedora-coreos-30.20190725.0-installer.iso
+    mount: /data/coreos30
+    sha256: 77f484a3ba2f5891c55301f0bc5278b795d5ae278f8a5b2003bcdaf100457751
+images:
+  ## The Fedora CoreOS image is the image that the installer writes to the client:
+  fedora-coreos-30.20190716.1-metal.raw.xz:
+    url: https://builds.coreos.fedoraproject.org/prod/streams/testing/builds/30.20190725.0/x86_64/fedora-coreos-30.20190725.0-metal.raw.xz
+    destination: /data/images/fedora-coreos-30.20190716.1-metal.raw.xz
+    sha256: f39ea47b716d946adb830d9d1121d0fadf57890fd6909b1d57933f37ad75c8da
+
+clients:
+  ba-bc-d3-8d-e5-5e:
+    ## Name of the ethernet interface on the client
+    interface: ens18
+    ## Static IP address to configure:
+    ip_address: 10.99.0.4
+    ## A map of systemd units to install (loads templates from default_config/templates/units/{NAME}.mako)
+    units:
+      docker.service:
+        enabled: false
+      docker.socket:
+        enabled: false
+      echo-http.service:
+        ## Setting `enabled: true` will start units on boot.
+        enabled: true
+        ## All per-unit args are passed into the template for the unit, possibly overriding defaults:
+        text: "Hello test client 1"
+
+    ## Don't have to set a hostname, it will just default to 'coreos':
+    #hostname: fcos-test
+    ## Default install device is sda
+    #install_dev: nvme0n1
+    ## Default to serial console, or you can do VGA instead:
+    #vga: true
+    ## Username defaults to 'core'
+    #username: fred
+    ## No password is set by default, leaving only SSH to login:
+    ## password: null

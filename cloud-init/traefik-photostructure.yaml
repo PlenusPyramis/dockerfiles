@@ -185,7 +185,7 @@ write_files:
             - /var/run/docker.sock:/var/run/docker.sock:ro
             - /opt/containers/traefik/data/traefik.yaml:/traefik.yml:ro
             - /opt/containers/traefik/data/acme.json:/acme.json
-          labels: [ {{ traefik_labels('traefik', port=None, auth=True) }} ]
+          labels: [ {{ traefik_labels('traefik', port=None, auth=True) }}, "traefik.http.routers.traefik-secure.service=api@internal" ]
       
         whoami:
           image: containous/whoami

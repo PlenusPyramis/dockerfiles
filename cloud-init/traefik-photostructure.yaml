@@ -108,7 +108,7 @@
 ## Jinja Macros - don't touch these - move along! See how they are used below
 ## under write_files.
 {% macro traefik_labels(name, port, auth=False) -%}
-"traefik.enable=true", "traefik.http.routers.{{ name }}.entrypoints=http", "traefik.http.routers.{{ name }}.rule=Host(`{{ name }}.{{ traefik_domain }}`)", "traefik.http.middlewares.{{ name }}-https-redirect.redirectscheme.scheme=https", "traefik.http.routers.{{ name }}.middlewares={{ name }}-https-redirect", "traefik.http.routers.{{ name }}-secure.entrypoints=https", "traefik.http.routers.{{ name }}-secure.rule=Host(`{{ name }}.{{ traefik_domain }}`)", "traefik.http.routers.{{ name }}-secure.tls=true", "traefik.http.routers.{{ name }}-secure.tls.certresolver=http", "traefik.http.services.{{ name }}.loadbalancer.server.port={{ port }}", {% if auth %}"traefik.http.middlewares.{{ name }}-auth.basicauth.users=USER_PASSWORD", "traefik.http.routers.{{ name }}-secure.middlewares={{ name }}-auth" {% endif %}
+"traefik.enable=true", "traefik.http.routers.{{ name }}.entrypoints=http", "traefik.http.routers.{{ name }}.rule=Host(`{{ name }}.{{ traefik_domain }}`)", "traefik.http.middlewares.{{ name }}-https-redirect.redirectscheme.scheme=https", "traefik.http.routers.{{ name }}.middlewares={{ name }}-https-redirect", "traefik.http.routers.{{ name }}-secure.entrypoints=https", "traefik.http.routers.{{ name }}-secure.rule=Host(`{{ name }}.{{ traefik_domain }}`)", "traefik.http.routers.{{ name }}-secure.tls=true", "traefik.http.routers.{{ name }}-secure.tls.certresolver=http" {% if port != None %}, "traefik.http.services.{{ name }}.loadbalancer.server.port={{ port }}"{% endif %}{% if auth %}, "traefik.http.middlewares.{{ name }}-auth.basicauth.users=USER_PASSWORD", "traefik.http.routers.{{ name }}-secure.middlewares={{ name }}-auth" {% endif %}
 {%- endmacro %}
 
 {% macro traefik_ca_server() -%}
@@ -137,7 +137,7 @@ write_files:
   - path: /opt/containers/traefik/data/traefik.yaml
     content: |
       api:
-        dashboard: true
+        dashboard: {% if traefik_dashboard %}true{% else %}false{% endif %}
 
       entryPoints:
         http:
@@ -185,19 +185,7 @@ write_files:
             - /var/run/docker.sock:/var/run/docker.sock:ro
             - /opt/containers/traefik/data/traefik.yaml:/traefik.yml:ro
             - /opt/containers/traefik/data/acme.json:/acme.json
-          labels:
-            - "traefik.enable=true"
-            - "traefik.http.routers.traefik.entrypoints=http"
-            - "traefik.http.routers.traefik.rule=Host(`traefik.{{ traefik_domain }}`)"
-            - "traefik.http.middlewares.traefik-auth.basicauth.users=USER_PASSWORD"
-            - "traefik.http.middlewares.traefik-https-redirect.redirectscheme.scheme=https"
-            - "traefik.http.routers.traefik.middlewares=traefik-https-redirect"
-            - "traefik.http.routers.traefik-secure.entrypoints=https"
-            - "traefik.http.routers.traefik-secure.rule=Host(`traefik.{{ traefik_domain }}`)"
-            - "traefik.http.routers.traefik-secure.middlewares=traefik-auth"
-            - "traefik.http.routers.traefik-secure.tls=true"
-            - "traefik.http.routers.traefik-secure.tls.certresolver=http"
-            - "traefik.http.routers.traefik-secure.service=api@internal"
+          labels: [ {{ traefik_labels('traefik', port=None, auth=True) }} ]
       
         whoami:
           image: containous/whoami
@@ -222,12 +210,12 @@ write_files:
           image: photostructure/server
           environment:
             PS_HOST_SCAN_PATHS: /ps/library
-            PS_SCAN_ALL_DRIVES: '1'
-            PS_SCAN_MY_PICTURES: '1'
+            PS_SCAN_ALL_DRIVES: 1
+            PS_SCAN_MY_PICTURES: 1
             PS_SCAN_PATHS: /ps/library
             PS_LOG_LEVEL: debug
-            PS_LOG_COMPRESS: '1'
-            PS_REQUIRE_MAKE_MODEL: '0'
+            PS_LOG_COMPRESS: 1
+            PS_REQUIRE_MAKE_MODEL: 0
             PS_SYNC_INTERVAL_HOURS: 2
             PS_MAX_CPU_PERCENT: 100
           volumes:

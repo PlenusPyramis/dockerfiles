@@ -136,9 +136,10 @@ write_files:
   ## staging environment (caServer).
   - path: /opt/containers/traefik/data/traefik.yaml
     content: |
+      {% if traefik_dashboard %}
       api:
-        dashboard: {% if traefik_dashboard %}true{% else %}false{% endif %}
-
+        dashboard: true
+      {% endif %}
       entryPoints:
         http:
           address: ":80"

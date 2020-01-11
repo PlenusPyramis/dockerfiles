@@ -38,6 +38,11 @@
 ## record for "*.<traefik_domain>" so that any subdomain will also resolve to
 ## the droplet or floating IP address.
 
+## If you are a developer, or are doing lots of testing with cloud-init,
+## it might get tiresome using the web browser to recreate your droplet each time.
+## Check out this developer tool I wrote that automates these boring tasks:
+## https://github.com/PlenusPyramis/dockerfiles/blob/master/cloud-init/droplet.sh
+
 #################################################################################
 ### This is a Jinja2 templated cloud-config (as indicated by the very first line.)
 ### YOU NEED TO EDIT THE VARIABLES IN THIS SECTION BETWEEN ######### LINES

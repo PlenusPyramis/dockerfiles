@@ -227,6 +227,8 @@ write_files:
       services:
         photostructure:
           image: photostructure/server
+          security_opt:
+            - no-new-privileges:true
           environment:
             PS_HOST_SCAN_PATHS: /ps/library
             PS_SCAN_ALL_DRIVES: 1
@@ -259,6 +261,8 @@ write_files:
         watchtower:
           command: --interval 10800
           image: containrrr/watchtower
+          security_opt:
+            - no-new-privileges:true
           volumes:
             - /var/run/docker.sock:/var/run/docker.sock:rw
 
@@ -301,6 +305,8 @@ write_files:
       services:
         gotify:
           image: gotify/server
+          security_opt:
+            - no-new-privileges:true
           volumes:
             - /opt/containers/gotify/config/gotify.yaml:/app/config.yml
           networks:

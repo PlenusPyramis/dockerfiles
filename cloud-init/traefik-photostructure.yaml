@@ -4,26 +4,14 @@
 ### Cloud-init for Docker + Traefik + Photostructure.
 ### Traefik takes care of HTTPs, renwewing the TLS certificate, and password authentication.
 
-### This file contains what is called cloud-init 'User data', which you copy, and edit,
-### in order to configure your own personal deployment, and
-### all of its settings, in one file: *this* file. Save this file, edit it,
-### and then when you create your droplet, you paste your edited version into the
-### 'User data' section of the droplet creation screen on Digital Ocean
-### (or theoretically any other cloud-init enabled environment/service.)
-### From then on, the install is fully automatic.
+### See the general README at
+### https://github.com/PlenusPyramis/dockerfiles/blob/master/cloud-init
 
-### This is tested with the Digital Ocean Marketplace Docker application. This
-### script does not install Docker, it assumes that Docker is already
-### installed/ready-to-go in the droplet image. So when creating this droplet,
-### don't choose regular Ubuntu, instead choose the Docker app from the
-### Marketplace tab, which is maintained by Digital Ocean and has an up-to-date
-### Docker version preinstalled. Then choose the droplet size and other details as you
-### normally would. When you get to one of the checkboxes that says 'User data',
-### check it, and paste this whole edited file (comments and all!) into the text
-### box that appears. When you finish and create the droplet, it will
-### automatically boot and setup everything exactly as you have configured in
-### this file, without any further setup. Save this file for later, and it'll be
-### nice and repeatable next time, just copy and paste. Neat, huh?
+### For this example you will need the following:
+### 1) A Digital Ocean account.
+### 2) A 1GB volume created to store the traefik certificates (traefik_acme_volume).
+### 3) A Domain name with DNS to point to the droplet or floating IP address.
+### 4) An email address to use when registering Let's Encrypt certificates.
 
 ### The example below configures the Photostructure library in /storage/photos.
 ### This directory can be on the root filesystem of the droplet, or block storage,
@@ -37,11 +25,6 @@
 ## a DNS-A record for your traefik_domain as defined below, as well as create a DNS-A wildcard
 ## record for "*.<traefik_domain>" so that any subdomain will also resolve to
 ## the droplet or floating IP address.
-
-## If you are a developer, or are doing lots of testing with cloud-init,
-## it might get tiresome using the web browser to recreate your droplet each time.
-## Check out this developer tool I wrote that automates these boring tasks:
-## https://github.com/PlenusPyramis/dockerfiles/blob/master/cloud-init/droplet.sh
 
 #################################################################################
 ### This is a Jinja2 templated cloud-config (as indicated by the very first line.)
@@ -61,31 +44,34 @@
 ## etc. 
 {% set traefik_domain = "d.example.com" %}
 
+### letsencrypt_email
+## Your email address used when generating TLS/SSL certificates
+{% set letsencrypt_email = "you@example.com" %}
+
+### traefik_acme_volume
+### You must create a volume to store the Traefik acme.json file. It will store your certificates.
+### Set the name of the external volume that you created.
+### This volume will auto-mount to /mnt/traefik_acme
+### By using an external volume, you can recreate the droplet without needing to regenerate certificates.
+{% set traefik_acme_volume = "volume-nyc1-traefik-config" %}
+
 ### traefik_dashboard
 ## Set to True to publicly expose the traefik dashboard (not usually needed; still requires user/pass to access)
 {% set traefik_dashboard = False %}
 
 ### traefik_username
-## Traefik dashboard username
+## Traefik dashboard username (only used when traefik_dashboard enabled)
 {% set traefik_username = "traefik" %}
 
 ### traefik_password
-## Traefik dashboard password
+## Traefik dashboard password (only used when traefik_dashboard enabled)
 {% set traefik_password = "traefik" %}
 
-### letsencrypt_email
-## Your email address used when generating TLS/SSL certificates
-{% set letsencrypt_email = "you@example.com" %}
-
-### letsencrypt_use_production
-## Start with False. If False, it will use the letsencrypt staging environment
-## (good for testing and development, because it avoids the rate limiting that
-## exists for the production environment. But your web browser will
-## complain about the invalid certificate that you must click through to allow.)
-## This should be set to True only when you are ready for a production
-## deployment, when you control a real domain name and DNS, and you want a real
-## TLS/SSL certificate that will be valid in all web browsers.
-{% set letsencrypt_use_production = False %}
+### letsencrypt_use_production Set to False to use the Let's Encrypt staging
+### server. Since you have setup a volume for the acme.json file, it is safe to
+### use True and use the production Let's Encrypt environment, even for
+### development.
+{% set letsencrypt_use_production = True %}
 
 ### photostructure_hostname
 ## The first part of the domain name for the photostructure app <photostructure_hostname>.<traefik_domain>
@@ -141,15 +127,6 @@
 
 ## Jinja templated cloud-config follows:
 write_files:
-  ## acme.json is the file that keeps track of your TLS/SSL certificates as well
-  ## as your Let's Encrypt account details. If you need to create and destroy
-  ## your droplet several times (for testing/debug purposes), hanging onto this
-  ## file across instance lifecycles will keep you from getting rate-limited in
-  ## production. When using letsencrypt_use_production=False, it doesn't matter
-  ## so much, as the rate-limits are way higher for the staging environment.
-  - path: /opt/containers/traefik/data/acme.json
-    permissions: '0600'
-    content: ""
   ## traefik.yaml is the main traefik config file and sets the production or
   ## staging environment (caServer).
   - path: /opt/containers/traefik/data/traefik.yaml
@@ -204,7 +181,7 @@ write_files:
             - /etc/localtime:/etc/localtime:ro
             - /var/run/docker.sock:/var/run/docker.sock:ro
             - /opt/containers/traefik/data/traefik.yaml:/traefik.yml:ro
-            - /opt/containers/traefik/data/acme.json:/acme.json
+            - /mnt/traefik_acme/acme.json:/acme.json
           labels: [ {{ traefik_labels('traefik', port=None, auth=True) }}, "traefik.http.routers.traefik-secure.service=api@internal" ]
       
         whoami:
@@ -323,6 +300,11 @@ packages:
   - jq
 
 runcmd:
+  ## Mount Traefik acme.json from an external volume so that it survives droplet recreation:
+  - mkdir -p /mnt/traefik_acme; mount -o discard,defaults /dev/disk/by-id/scsi-0DO_Volume_{{ traefik_acme_volume }} /mnt/traefik_acme; echo /dev/disk/by-id/scsi-0DO_Volume_{{ traefik_acme_volume }} /mnt/traefik_acme ext4 defaults,nofail,discard 0 0 | sudo tee -a /etc/fstab
+  - df -h /mnt/traefik_acme | grep /mnt/traefik_acme$ || exit 1
+  - touch /mnt/traefik_acme/acme.json
+  - chmod 0600 /mnt/traefik_acme/acme.json
   ## Convert the username and password fields into htpasswd format
   ## This replaces the placeholder text that the templates inserted.
   - sed -i.template 's@REPLACE_USER_PASSWORD@'"$(htpasswd -nb {{ traefik_username }} {{ traefik_password }} | sed -e s/\\$/\\$\\$/g | grep .)"'@' /opt/containers/traefik/docker-compose.yaml

@@ -72,7 +72,7 @@ droplet_ssh() {
 }
 
 droplet_status() {
-    droplet_ssh cloud-init status -w
+    droplet_ssh "cloud-init status -w && cat /var/run/cloud-init/result.json | jq .v1.errors"
     retVal=$?
     echo "Inspect the cloud-init logs by running droplet_logs"
     return $retVal

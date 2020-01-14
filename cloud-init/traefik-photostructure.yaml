@@ -1,8 +1,9 @@
 ## template: jinja
 #cloud-config
 
-### Cloud-init for Docker + Traefik + Photostructure.
+### Cloud-init for Docker + Traefik + Photostructure + Digital Ocean Spaces
 ### Traefik takes care of HTTPs, renwewing the TLS certificate, and password authentication.
+### Photos are stored in Digital Ocean Spaces mounted via s3fs.
 
 ### See the general README at
 ### https://github.com/PlenusPyramis/dockerfiles/blob/master/cloud-init
@@ -67,11 +68,13 @@
 ## Traefik dashboard password (only used when traefik_dashboard enabled)
 {% set traefik_password = "traefik" %}
 
-### letsencrypt_use_production Set to False to use the Let's Encrypt staging
-### server. Since you have setup a volume for the acme.json file, it is safe to
-### use True and use the production Let's Encrypt environment, even for
-### development.
-{% set letsencrypt_use_production = True %}
+### photostructure_s3_access_key
+### The photo storage S3 bucket access key
+{% set photostructure_s3_access_key = "" %}
+
+### photostructure_s3_secret_key
+### The photo storage S3 bucket secret key
+{% set photostructure_s3_secret_key = "" %}
 
 ### photostructure_hostname
 ## The first part of the domain name for the photostructure app <photostructure_hostname>.<traefik_domain>
@@ -95,7 +98,6 @@
 
 ### gotify_enable
 ## Enable gotify notifications server
-## Only works when letsencrypt_use_production=True
 {% set gotify_enable = False %}
 
 ### gotify_user
@@ -109,26 +111,13 @@
 ### End variables - STOP EDITING HERE unless you're developing new hosted apps.
 ################################################################################
 
-## Jinja Macros - don't touch these - move along! See how they are used below
-## under write_files.
 {% macro traefik_labels(name, port, auth=False) -%}
 "traefik.enable=true", "traefik.http.routers.{{ name }}.entrypoints=http", "traefik.http.routers.{{ name }}.rule=Host(`{{ name }}.{{ traefik_domain }}`)", "traefik.http.middlewares.{{ name }}-https-redirect.redirectscheme.scheme=https", "traefik.http.routers.{{ name }}.middlewares={{ name }}-https-redirect", "traefik.http.routers.{{ name }}-secure.entrypoints=https", "traefik.http.routers.{{ name }}-secure.rule=Host(`{{ name }}.{{ traefik_domain }}`)", "traefik.http.routers.{{ name }}-secure.tls=true", "traefik.http.routers.{{ name }}-secure.tls.certresolver=http" {% if port != None %}, "traefik.http.services.{{ name }}.loadbalancer.server.port={{ port }}"{% endif %}{% if auth %}, "traefik.http.middlewares.{{ name }}-auth.basicauth.users=REPLACE_USER_PASSWORD", "traefik.http.routers.{{ name }}-secure.middlewares={{ name }}-auth" {% endif %}
 {%- endmacro %}
 
-{% macro traefik_ca_server() -%}
-{% if letsencrypt_use_production %}
-"https://acme-v02.api.letsencrypt.org/directory"
-{% else %}
-"https://acme-staging-v02.api.letsencrypt.org/directory"
-{% endif %}
-{%- endmacro %}
-
-################################################################################
-
 ## Jinja templated cloud-config follows:
 write_files:
-  ## traefik.yaml is the main traefik config file and sets the production or
-  ## staging environment (caServer).
+  ## traefik.yaml is the main traefik config file
   - path: /opt/containers/traefik/data/traefik.yaml
     content: |
       entryPoints:
@@ -150,7 +139,7 @@ write_files:
       certificatesResolvers:
         http:
           acme:
-            caServer: {{ traefik_ca_server() }}
+            caServer: https://acme-v02.api.letsencrypt.org/directory
             email: {{ letsencrypt_email }}
             storage: acme.json
             httpChallenge:
@@ -196,6 +185,7 @@ write_files:
       networks:
         proxy:
           external: true
+
   ## photostructure/docker-compose.yaml sets up the Docker container for Photostructure
   - path: /opt/containers/photostructure/docker-compose.yaml
     content: |
@@ -243,7 +233,7 @@ write_files:
           volumes:
             - /var/run/docker.sock:/var/run/docker.sock:rw
 
-          {% if gotify_enable and letsencrypt_use_production %}
+          {% if gotify_enable %}
 
           environment:
             WATCHTOWER_NOTIFICATIONS: 'gotify'
@@ -295,9 +285,9 @@ write_files:
           external: true
 
 packages:
-  ## Need to install htpasswd utility to generate the proper password format for traefik.
   - apache2-utils
   - jq
+  - python3-pip
 
 runcmd:
   ## Mount Traefik acme.json from an external volume so that it survives droplet recreation:
@@ -312,9 +302,9 @@ runcmd:
   ## Create the network that is used for traefik hosted apps
   - docker network create proxy
   ## Create and start the containers
-  - docker-compose -f /opt/containers/traefik/docker-compose.yaml up -d
+  #- docker-compose -f /opt/containers/traefik/docker-compose.yaml up -d
   - docker-compose -f /opt/containers/photostructure/docker-compose.yaml up -d
-{% if gotify_enable and letsencrypt_use_production %}
+{% if gotify_enable %}
   - docker-compose -f /opt/containers/gotify/docker-compose.yaml up -d
   - until $(curl --output /dev/null --silent --fail https://gotify.{{ traefik_domain }}); do printf '.'; sleep 5; done;
   - sleep 20

@@ -1,0 +1,9 @@
+#cloud-config
+
+packages:
+  - apache2-utils
+  - jq
+  - python3-pip
+
+runcmd:
+  - pip3 install j2cli

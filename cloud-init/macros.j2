@@ -1,4 +1,0 @@
-## template: jinja
-{% macro traefik_labels(name, port, auth=False) -%}
-"traefik.enable=true", "traefik.http.routers.{{ name }}.entrypoints=http", "traefik.http.routers.{{ name }}.rule=Host(`{{ name }}.{{ traefik_domain }}`)", "traefik.http.middlewares.{{ name }}-https-redirect.redirectscheme.scheme=https", "traefik.http.routers.{{ name }}.middlewares={{ name }}-https-redirect", "traefik.http.routers.{{ name }}-secure.entrypoints=https", "traefik.http.routers.{{ name }}-secure.rule=Host(`{{ name }}.{{ traefik_domain }}`)", "traefik.http.routers.{{ name }}-secure.tls=true", "traefik.http.routers.{{ name }}-secure.tls.certresolver=http" {% if port != None %}, "traefik.http.services.{{ name }}.loadbalancer.server.port={{ port }}"{% endif %}{% if auth %}, "traefik.http.middlewares.{{ name }}-auth.basicauth.users=REPLACE_USER_PASSWORD", "traefik.http.routers.{{ name }}-secure.middlewares={{ name }}-auth" {% endif %}
-{%- endmacro %}

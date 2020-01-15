@@ -1,0 +1,32 @@
+Content-Type: multipart/mixed; boundary="===============4759291697798369155=="
+MIME-Version: 1.0
+
+--===============4759291697798369155==
+Content-Type: text/cloud-config; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: attachment; filename="common-dependencies.yaml"
+
+#cloud-config
+
+packages:
+  - apache2-utils
+  - jq
+  - python3-pip
+
+runcmd:
+  - pip3 install j2cli
+
+--===============4759291697798369155==
+Content-Type: text/cloud-config; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+Content-Disposition: attachment; filename="test.yaml"
+
+#cloud-config
+
+runcmd:
+  - echo "test from cloud-init" > /root/test.txt
+  
+
+--===============4759291697798369155==--

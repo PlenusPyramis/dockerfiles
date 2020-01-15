@@ -5,10 +5,6 @@ merge_how:
  - name: dict
    settings: [no_replace, recurse_list]
 
-packages:
-  - apache2-utils
-  - jq
-  - python3-pip
-
 runcmd:
-  - pip3 install j2cli
+  - echo "test from cloud-init" > /root/test.txt
+  

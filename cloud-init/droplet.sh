@@ -21,7 +21,7 @@ export DROPLET_SIZE=s-1vcpu-1gb
 export FLOATING_IP=167.172.12.217
 export SSH_FINGERPRINTS=76:ef:9f:d2:36:c9:c1:36:79:a5:8c:15:fb:bc:d8:64,e6:ac:de:dc:41:63:d6:56:b7:d2:ee:c3:56:b8:4e:47
 export VOLUME_NAMES=volume-nyc1-traefik-config
-export USER_DATA_FILE=traefik-photostructure.yaml
+export USER_DATA_FILE=test-multipart-mime.txt
 
 droplet_destroy() {
     (

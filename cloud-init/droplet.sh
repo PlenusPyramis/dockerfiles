@@ -21,7 +21,7 @@ export DROPLET_SIZE=s-1vcpu-1gb
 export FLOATING_IP=167.172.12.217
 export SSH_FINGERPRINTS=76:ef:9f:d2:36:c9:c1:36:79:a5:8c:15:fb:bc:d8:64,e6:ac:de:dc:41:63:d6:56:b7:d2:ee:c3:56:b8:4e:47
 export VOLUME_NAMES=volume-nyc1-traefik-config
-export USER_DATA_FILE=test-multipart-mime.txt
+export USER_DATA_FILE=traefik-user-data.txt
 
 droplet_destroy() {
     (
@@ -72,9 +72,9 @@ droplet_ssh() {
 }
 
 droplet_status() {
-    droplet_ssh "cloud-init status -w && cat /var/run/cloud-init/result.json | jq .v1.errors"
+    droplet_ssh "cloud-init status -w && cat /var/run/cloud-init/result.json | jq .v1.errors && echo 'External cloud-init resources loaded:' && grep url_helper /var/log/cloud-init.log | grep -oP 'Read from \K[^ ]*'"
     retVal=$?
-    echo "Inspect the cloud-init logs by running droplet_logs"
+    echo -e "\nInspect the cloud-init logs by running droplet_logs"
     return $retVal
 }
 

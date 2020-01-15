@@ -1,4 +1,0 @@
-#include
-https://raw.githubusercontent.com/PlenusPyramis/dockerfiles/master/cloud-init/common-dependencies.yaml
-https://raw.githubusercontent.com/PlenusPyramis/dockerfiles/master/cloud-init/test.yaml
-https://raw.githubusercontent.com/PlenusPyramis/dockerfiles/master/cloud-init/test2.yaml

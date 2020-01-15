@@ -1,0 +1,5 @@
+#cloud-config
+
+runcmd:
+  - echo "test from cloud-init" > /root/test.txt
+  

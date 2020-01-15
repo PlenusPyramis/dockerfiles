@@ -72,7 +72,7 @@ droplet_ssh() {
 }
 
 droplet_status() {
-    droplet_ssh "cloud-init status -w && cat /var/run/cloud-init/result.json | jq .v1.errors && echo 'External cloud-init resources loaded:' && grep url_helper /var/log/cloud-init.log | grep -oP 'Read from \K[^ ]*'"
+    droplet_ssh "cloud-init status -w && cat /var/run/cloud-init/result.json | jq .v1.errors && echo 'External cloud-init resources loaded:' && grep url_helper /var/log/cloud-init.log | grep -oP 'Read from \K[^ ]*' && echo 'Running containers:' && docker ps"
     retVal=$?
     echo -e "\nInspect the cloud-init logs by running droplet_logs"
     return $retVal

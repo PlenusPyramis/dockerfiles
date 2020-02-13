@@ -1,0 +1,66 @@
+#cloud-config
+merge_how:
+ - name: list
+   settings: [append]
+ - name: dict
+   settings: [no_replace, recurse_list]
+
+write_files:
+  ## photostructure/docker-compose.yaml sets up the Docker container for Photostructure
+  - path: /opt/containers/templates/photostructure/docker-compose.yaml.j2
+    content: |
+      version: '3.0'
+
+      services:
+        photostructure:
+          image: photostructure/server
+          security_opt:
+            - no-new-privileges:true
+          environment:
+            PS_HOST_SCAN_PATHS: /ps/library
+            PS_SCAN_ALL_DRIVES: 1
+            PS_SCAN_MY_PICTURES: 1
+            PS_SCAN_PATHS: /ps/library
+            PS_LOG_LEVEL: debug
+            PS_LOG_COMPRESS: 1
+            PS_REQUIRE_MAKE_MODEL: 0
+            PS_SYNC_INTERVAL_HOURS: 2
+            PS_MAX_CPU_PERCENT: 100
+          volumes:
+            - /opt/containers/photostructure/config:/ps/config:rw
+            - {{ photostructure.library_path }}:/ps/library:rw
+            - /opt/containers/photostructure/logs:/ps/logs:rw
+            - /tmp/photostructure-docker:/ps/tmp:rw
+          networks:
+            - proxy
+          labels:
+           - "traefik.enable=true"
+           - "traefik.http.routers.photostructure.entrypoints=http"
+           - "traefik.http.routers.photostructure.rule=Host(`{{ photostructure.hostname }}.{{ traefik.domain }}`)"
+           - "traefik.http.middlewares.photostructure-https-redirect.redirectscheme.scheme=https"
+           - "traefik.http.routers.photostructure.middlewares=photostructure-https-redirect"
+           - "traefik.http.routers.photostructure-secure.entrypoints=https"
+           - "traefik.http.routers.photostructure-secure.rule=Host(`{{ photostructure.hostname }}.{{ traefik.domain }}`)"
+           - "traefik.http.routers.photostructure-secure.tls=true"
+           - "traefik.http.routers.photostructure-secure.tls.certresolver=http"
+           - "traefik.http.routers.photostructure-secure.service=photostructure"
+           - "traefik.http.services.photostructure.loadbalancer.server.port=1787"
+           - "traefik.docker.network=proxy"
+           - "traefik.http.middlewares.photostructure-auth.basicauth.users={{ photostructure.basicauth_users }}"
+           - "traefik.http.routers.photostructure-secure.middlewares=photostructure-auth"
+      networks:
+        proxy:
+          external: true
+
+  - path: /opt/containers/templates/photostructure/password_encode.sh.j2
+    content: |
+      htpasswd -nb {{ photostructure.username }} {{ photostructure.password }} | sed -e s/\\$/\\$\\$/g | grep .
+
+
+runcmd:
+  ## Create the htpasswd encoded username/password and add it into the user variables:
+  - yq write --inplace -- /run/cloud-init/user-variables-sensitive.yaml photostructure.basicauth_users $(j2 /opt/containers/templates/traefik/password_encode.sh.j2 /run/cloud-init/user-variables-sensitive.yaml | bash)
+  ## Render the docker-compose from the template:
+  - j2 /opt/containers/templates/photostructure/docker-compose.yaml.j2 /run/cloud-init/user-variables-sensitive.yaml -o /opt/containers/photostructure/docker-compose.yaml
+  ## Create and start the containers
+  - docker-compose -f /opt/containers/photostructure/docker-compose.yaml up -d

@@ -58,8 +58,9 @@ write_files:
 
 
 runcmd:
+  - mkdir -p /opt/containers/photostructure 
   ## Create the htpasswd encoded username/password and add it into the user variables:
-  - yq write --inplace -- /run/cloud-init/user-variables-sensitive.yaml photostructure.basicauth_users $(j2 /opt/containers/templates/traefik/password_encode.sh.j2 /run/cloud-init/user-variables-sensitive.yaml | bash)
+  - yq write --inplace -- /run/cloud-init/user-variables-sensitive.yaml photostructure.basicauth_users $(j2 /opt/containers/templates/photostructure/password_encode.sh.j2 /run/cloud-init/user-variables-sensitive.yaml | bash)
   ## Render the docker-compose from the template:
   - j2 /opt/containers/templates/photostructure/docker-compose.yaml.j2 /run/cloud-init/user-variables-sensitive.yaml -o /opt/containers/photostructure/docker-compose.yaml
   ## Create and start the containers

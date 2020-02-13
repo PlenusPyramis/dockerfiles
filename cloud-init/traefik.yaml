@@ -1,0 +1,140 @@
+#cloud-config
+merge_how:
+ - name: list
+   settings: [append]
+ - name: dict
+   settings: [no_replace, recurse_list]
+
+write_files:
+  ## traefik.yaml is the main traefik config file
+  - path: /opt/containers/templates/traefik/data/traefik.yaml.j2
+    content: |
+      entryPoints:
+        http:
+          address: ":80"
+        https:
+          address: ":443"
+
+      {% if traefik.dashboard_enable %}
+      api:
+        dashboard: true
+      {% endif %}
+      
+      providers:
+        docker:
+          endpoint: "unix:///var/run/docker.sock"
+          exposedByDefault: false
+      
+      certificatesResolvers:
+        http:
+          acme:
+            caServer: https://acme-v02.api.letsencrypt.org/directory
+            email: {{ traefik.email }}
+            storage: acme.json
+            httpChallenge:
+              entryPoint: http
+
+  ## traefik/docker-compose.yaml sets up the Docker containers for Traefik and
+  ## Whoami. Docker itself manages the startup of these containers when the
+  ## droplet reboots (not systemd.) The example for whoami is a basis you can
+  ## use for other apps, the traefik_labels() jinja macro makes standard docker
+  ## labels needed for traefik, easier and more compact.
+  - path: /opt/containers/templates/traefik/docker-compose.yaml.j2
+    content: |
+      version: '3'
+      
+      services:
+        traefik:
+          image: traefik:v2.0
+          container_name: traefik
+          restart: unless-stopped
+          security_opt:
+            - no-new-privileges:true
+          networks:
+            - proxy
+          ports:
+            - 80:80
+            - 443:443
+          volumes:
+            - /etc/localtime:/etc/localtime:ro
+            - /var/run/docker.sock:/var/run/docker.sock:ro
+            - /opt/containers/traefik/data/traefik.yaml:/traefik.yml:ro
+            - /mnt/traefik_acme/acme.json:/acme.json
+          labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.traefik.entrypoints=http"
+            - "traefik.http.routers.traefik.rule=Host(`traefik.{{ traefik.domain }}`)"
+            - "traefik.http.middlewares.traefik-auth.basicauth.users={{ traefik.basicauth_users }}"
+            - "traefik.http.middlewares.traefik-https-redirect.redirectscheme.scheme=https"
+            - "traefik.http.routers.traefik.middlewares=traefik-https-redirect"
+            - "traefik.http.routers.traefik-secure.entrypoints=https"
+            - "traefik.http.routers.traefik-secure.rule=Host(`traefik.{{ traefik.domain }}`)"
+            - "traefik.http.routers.traefik-secure.middlewares=traefik-auth"
+            - "traefik.http.routers.traefik-secure.tls=true"
+            - "traefik.http.routers.traefik-secure.tls.certresolver=http"
+            - "traefik.http.routers.traefik-secure.service=api@internal"
+      
+        whoami:
+          image: containous/whoami
+          restart: unless-stopped
+          security_opt:
+            - no-new-privileges:true
+          networks:
+            - proxy
+          labels:
+           - "traefik.enable=true"
+           - "traefik.http.routers.whoami.entrypoints=http"
+           - "traefik.http.routers.whoami.rule=Host(`whoami.{{ traefik.domain }}`)"
+           - "traefik.http.middlewares.whoami-https-redirect.redirectscheme.scheme=https"
+           - "traefik.http.routers.whoami.middlewares=whoami-https-redirect"
+           - "traefik.http.routers.whoami-secure.entrypoints=https"
+           - "traefik.http.routers.whoami-secure.rule=Host(`whoami.{{ traefik.domain }}`)"
+           - "traefik.http.routers.whoami-secure.tls=true"
+           - "traefik.http.routers.whoami-secure.tls.certresolver=http"
+           - "traefik.http.routers.whoami-secure.service=whoami"
+           - "traefik.http.services.whoami.loadbalancer.server.port=80"
+           - "traefik.docker.network=proxy"
+
+      networks:
+        proxy:
+          external: true
+
+  - path: /opt/containers/templates/traefik/volume_mount.sh.j2
+    content: |
+      mkdir -p /mnt/traefik_acme
+      mount -o discard,defaults /dev/disk/by-id/scsi-0DO_Volume_{{ traefik.acme_volume }} /mnt/traefik_acme
+      echo /dev/disk/by-id/scsi-0DO_Volume_{{ traefik.acme_volume }} /mnt/traefik_acme ext4 defaults,nofail,discard 0 0 | sudo tee -a /etc/fstab
+      df -h /mnt/traefik_acme | grep /mnt/traefik_acme$ || exit 1
+      touch /mnt/traefik_acme/acme.json
+      chmod 0600 /mnt/traefik_acme/acme.json
+
+  - path: /opt/containers/templates/traefik/password_encode.sh.j2
+    content: |
+      htpasswd -nb {{ traefik.username }} {{ traefik.password }} | sed -e s/\\$/\\$\\$/g | grep .
+
+apt:
+  sources:
+    yq-ppa.list:
+      source: "ppa:rmescandon/yq"
+
+packages:
+  - apache2-utils
+  - jq
+  - yq
+  - python3-pip
+
+runcmd:
+  - pip3 install j2cli[yaml]
+  ## Mount Traefik acme.json from an external volume so that it survives droplet recreation:
+  - j2 /opt/containers/templates/traefik/volume_mount.sh.j2 /run/cloud-init/user-variables-sensitive.yaml | /bin/bash
+  ## Create the htpasswd encoded username/password and add it into the user variables:
+  - yq write --inplace -- /run/cloud-init/user-variables-sensitive.yaml traefik.basicauth_users $(j2 /opt/containers/templates/traefik/password_encode.sh.j2 /run/cloud-init/user-variables-sensitive.yaml | bash)
+  ## Render the traefik config from the template:
+  - mkdir -p /opt/containers/traefik/data 
+  - j2 /opt/containers/templates/traefik/data/traefik.yaml.j2 /run/cloud-init/user-variables-sensitive.yaml -o /opt/containers/traefik/data/traefik.yaml
+  ## Render the traefik docker-compose from the template:
+  - j2 /opt/containers/templates/traefik/docker-compose.yaml.j2 /run/cloud-init/user-variables-sensitive.yaml -o /opt/containers/traefik/docker-compose.yaml
+  ## Create the network that is used for traefik hosted apps
+  - docker network create proxy
+  ## Create and start the containers
+  - docker-compose -f /opt/containers/traefik/docker-compose.yaml up -d

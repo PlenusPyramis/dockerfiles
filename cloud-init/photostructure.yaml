@@ -36,11 +36,11 @@ write_files:
           labels:
            - "traefik.enable=true"
            - "traefik.http.routers.photostructure.entrypoints=http"
-           - "traefik.http.routers.photostructure.rule=Host(`{{ photostructure.hostname }}.{{ traefik.domain }}`)"
+           - "traefik.http.routers.photostructure.rule=Host(`{{ photostructure.domain }}`)"
            - "traefik.http.middlewares.photostructure-https-redirect.redirectscheme.scheme=https"
            - "traefik.http.routers.photostructure.middlewares=photostructure-https-redirect"
            - "traefik.http.routers.photostructure-secure.entrypoints=https"
-           - "traefik.http.routers.photostructure-secure.rule=Host(`{{ photostructure.hostname }}.{{ traefik.domain }}`)"
+           - "traefik.http.routers.photostructure-secure.rule=Host(`{{ photostructure.domain }}`)"
            - "traefik.http.routers.photostructure-secure.tls=true"
            - "traefik.http.routers.photostructure-secure.tls.certresolver=http"
            - "traefik.http.routers.photostructure-secure.service=photostructure"

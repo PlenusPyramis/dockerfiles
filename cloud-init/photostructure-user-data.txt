@@ -13,10 +13,10 @@ write_files:
   - path: /run/cloud-init/user-variables-sensitive.yaml
     content: |
       traefik:
-        ## Set your subdomain here:
-        domain: d.example.com
+        ## Set your full qualified (sub-)domain that traefik manages :
+        domain: pix.rymcg.tech
         ## Set your email address here:
-        email: you@example.com
+        email: letsencrypt@enigmacurry.com
         ## Set the volume name that you created for traefik:
         acme_volume: volume-nyc1-traefik-config
         ## It is more secure to leave the traefik dashboard turned off, you probably don't need it:
@@ -26,8 +26,8 @@ write_files:
         ## If you do turn on the dashboard, it will use this password:
         password: traefik
       photostructure:
-        ## Set photostructure hostname (not including domain)
-        hostname: photos
+        ## Set photostructure full qualified domain name
+        domain: pix.rymcg.tech
         library_path: /storage/photos
         username: photos
         password: hunter2
@@ -37,7 +37,7 @@ write_files:
 Content-Type: text/x-include-url; charset="us-ascii"
 MIME-Version: 1.0
 Content-Transfer-Encoding: 7bit
-Content-Disposition: attachment; filename="traefik_includes.txt"
+Content-Disposition: attachment; filename="cloudinit_includes.txt"
 
 #include
 https://raw.githubusercontent.com/PlenusPyramis/dockerfiles/master/cloud-init/traefik.yaml

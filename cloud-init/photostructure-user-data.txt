@@ -18,7 +18,7 @@ write_files:
         ## Set your email address here:
         email: letsencrypt@enigmacurry.com
         ## Set the volume name that you created for traefik:
-        acme_volume: volume-nyc1-traefik-config
+        config_volume: volume-nyc1-d-config
         ## It is more secure to leave the traefik dashboard turned off, you probably don't need it:
         dashboard_enable: false
         ## If you do turn on the dashboard, it will use this username:

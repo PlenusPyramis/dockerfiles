@@ -101,12 +101,15 @@ write_files:
 
   - path: /opt/containers/templates/traefik/volume_mount.sh.j2
     content: |
-      mkdir -p /mnt/traefik_acme
-      mount -o discard,defaults /dev/disk/by-id/scsi-0DO_Volume_{{ traefik.acme_volume }} /mnt/traefik_acme
-      echo /dev/disk/by-id/scsi-0DO_Volume_{{ traefik.acme_volume }} /mnt/traefik_acme ext4 defaults,nofail,discard 0 0 | sudo tee -a /etc/fstab
-      df -h /mnt/traefik_acme | grep /mnt/traefik_acme$ || exit 1
-      touch /mnt/traefik_acme/acme.json
-      chmod 0600 /mnt/traefik_acme/acme.json
+      #!/bin/sh
+      set -e
+      mkdir -p /mnt/config
+      mount -o discard,defaults /dev/disk/by-id/scsi-0DO_Volume_{{ traefik.config_volume }} /mnt/config
+      echo /dev/disk/by-id/scsi-0DO_Volume_{{ traefik.config_volume }} /mnt/config ext4 defaults,nofail,discard 0 0 | sudo tee -a /etc/fstab
+      mkdir /mnt/config/traefik
+      df -h /mnt/config | grep /mnt/config$ || exit 1
+      touch /mnt/config/traefik/acme.json
+      chmod 0600 /mnt/config/traefik/acme.json
 
   - path: /opt/containers/templates/traefik/password_encode.sh.j2
     content: |

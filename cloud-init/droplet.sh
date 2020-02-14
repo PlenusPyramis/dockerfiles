@@ -18,10 +18,11 @@ export DROPLET_REGION=nyc1
 export DROPLET_NAME=d
 export DROPLET_IMAGE=docker-18-04
 export DROPLET_SIZE=s-1vcpu-1gb
-export FLOATING_IP=167.172.12.217
-export SSH_FINGERPRINTS=76:ef:9f:d2:36:c9:c1:36:79:a5:8c:15:fb:bc:d8:64,e6:ac:de:dc:41:63:d6:56:b7:d2:ee:c3:56:b8:4e:47
-export VOLUME_NAMES=volume-nyc1-traefik-config
-export USER_DATA_FILE=traefik-user-data.txt
+export DROPLET_FLOATING_IP=178.128.133.53
+export DROPLET_SSH_FINGERPRINTS=76:ef:9f:d2:36:c9:c1:36:79:a5:8c:15:fb:bc:d8:64,e6:ac:de:dc:41:63:d6:56:b7:d2:ee:c3:56:b8:4e:47
+export DROPLET_CONFIG_VOLUME=volume-$DROPLET_REGION-$DROPLET_NAME-config
+export DROPLET_CONFIG_VOLUME_SIZE=1GiB
+export DROPLET_USER_DATA_FILE=photostructure-user-data.txt
 
 droplet_destroy() {
     (
@@ -42,23 +43,23 @@ droplet_destroy() {
 droplet_create() {
     (
         set -e
-        ## Get Volume IDS
-        VOLUMES=""
-        IFS=',' read -ra NAMES <<< "$VOLUME_NAMES"
-        for name in "${NAMES[@]}"; do
-            VOLUMES=$(doctl compute volume list --no-header | grep " $name " | cut -d ' ' -f 1),$VOLUMES
-        done
-        VOLUMES=$(echo $VOLUMES | sed 's/,*$//' | sed 's/^,*//')
+        ## Get Config Volume ID
+        VOLUME_ID=$(doctl compute volume list --no-header | grep " $DROPLET_CONFIG_VOLUME " | cut -d ' ' -f 1)
+        if [ -z "$VOLUME_ID" ]; then
+            ## Create volume
+            echo "Creating volume: $DROPLET_CONFIG_VOLUME"
+            VOLUME_ID=$(doctl compute volume create $DROPLET_CONFIG_VOLUME --region $DROPLET_REGION --size $DROPLET_CONFIG_VOLUME_SIZE --fs-type ext4 --no-header | grep " $DROPLET_CONFIG_VOLUME " | cut -d ' ' -f 1)
+        fi
 
         ## Create droplet
         DROPLET=$(doctl compute droplet list --format=ID,Name --no-header | grep " $DROPLET_NAME$" | cut -d " " -f 1)
         if [ -z "$DROPLET" ]
         then
             echo Creating droplet $DROPLET_NAME ...
-            DROPLET=$(doctl compute droplet create $DROPLET_NAME --size $DROPLET_SIZE --image $DROPLET_IMAGE --region $DROPLET_REGION --volumes $VOLUMES --ssh-keys $SSH_FINGERPRINTS --user-data-file $USER_DATA_FILE --wait --no-header --format=ID)
+            DROPLET=$(doctl compute droplet create $DROPLET_NAME --size $DROPLET_SIZE --image $DROPLET_IMAGE --region $DROPLET_REGION --volumes $VOLUME_ID --ssh-keys $DROPLET_SSH_FINGERPRINTS --user-data-file $DROPLET_USER_DATA_FILE --wait --no-header --format=ID)
             test $? -eq 0 || exit 1
             echo Assigning Floating IP to $DROPLET_NAME
-            doctl compute floating-ip-action assign $FLOATING_IP $DROPLET
+            doctl compute floating-ip-action assign $DROPLET_FLOATING_IP $DROPLET
         else
             echo Droplet already exists: $DROPLET_NAME ID=$DROPLET
             return 1
@@ -68,7 +69,7 @@ droplet_create() {
 }
 
 droplet_ssh() {
-    ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@$FLOATING_IP "$@"
+    ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@$DROPLET_FLOATING_IP "$@"
 }
 
 droplet_status() {

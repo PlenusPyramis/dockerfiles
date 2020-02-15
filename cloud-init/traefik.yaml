@@ -59,7 +59,7 @@ write_files:
             - /etc/localtime:/etc/localtime:ro
             - /var/run/docker.sock:/var/run/docker.sock:ro
             - /opt/containers/traefik/data/traefik.yaml:/traefik.yml:ro
-            - /mnt/traefik_acme/acme.json:/acme.json
+            - /mnt/config/traefik/acme.json:/acme.json
           labels:
             - "traefik.enable=true"
             - "traefik.http.routers.traefik.entrypoints=http"

@@ -1,0 +1,9 @@
+PermitRootLogin yes
+PasswordAuthentication no
+HostKey /etc/ssh/keys/ssh_host_rsa_key
+HostKey /etc/ssh/keys/ssh_host_ecdsa_key
+HostKey /etc/ssh/keys/ssh_host_ed25519_key
+X11Forwarding yes
+PrintMotd no
+AcceptEnv LANG LC_*
+Subsystem       sftp    /usr/lib/openssh/sftp-server

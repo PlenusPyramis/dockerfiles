@@ -4,7 +4,6 @@ MAINTAINER PlenusPyramis "https://github.com/PlenusPyramis/dockerfiles"
 RUN apt-get update \
     && apt-get install -y openssh-server locales-all mosh \
     && mkdir /var/run/sshd \
-    && (echo -n "root:" ; < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32}; echo) | chpasswd \
     && mkdir /root/.ssh \
     && chmod 700 /root/.ssh \
     && apt-get clean \

@@ -1,0 +1,14 @@
+[Unit]
+Description=Ubuntu Pet Container
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+TimeoutStartSec=0
+ExecStartPre=-/bin/podman kill ubuntu-pet
+ExecStartPre=-/bin/podman rm -i ubuntu-pet
+ExecStartPre=mkdir -p ${HOME}/.ssh/ubuntu-pet
+ExecStart=/bin/podman run --name ubuntu-pet --rm -p 2222:22 -p 60000-60010:60000-60010/udp -v ${HOME}/.ssh/ubuntu-pet:/etc/ssh/keys:Z -v ${HOME}/.ssh/authorized_keys:/root/.ssh/authorized_keys:ro plenuspyramis/ubuntu-pet
+
+[Install]
+WantedBy=default.target

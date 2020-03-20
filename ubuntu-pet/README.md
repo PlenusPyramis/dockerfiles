@@ -23,27 +23,38 @@ etc.
 
 ### Run the container (without systemd):
 
+Basic command you would run if you don't want to use systemd:
+
 ```
-mkdir -p $HOME/.ssh/ubuntu-pet && \
+mkdir -p $HOME/.ssh/ubuntu-pet/root && \
+touch $HOME/.ssh/ubuntu-pet/root/authorized_keys && \
+chmod 0600 $HOME/.ssh/ubuntu-pet/root/authorized_keys && \
 podman run --name ubuntu-pet --rm -d \
     -p 2222:22 -p 60000-60010:60000-60010/udp \
-    -v $HOME/.ssh/ubuntu-pet:/etc/ssh/keys \
-    -v $HOME/.ssh/authorized_keys:/root/.ssh/authorized_keys:ro \
+    -v $HOME/.ssh/ubuntu-pet:/etc/ssh/keys:Z \
     plenuspyramis/ubuntu-pet
+```
+
+Each user that you create inside the container gets its own `authorized_keys`
+file stored on the host in your home directory:
+`$HOME/.ssh/ubuntu-pet/$USER/authorized_keys`. Password authentication is
+disabled, so you must create and populate the `authorized_keys` file for the
+root user, as well as for any other user accounts you need. If you already have
+SSH keys setup for your host account, you can just copy from that into the root
+`authorized_keys`:
+
+```
+cat $HOME/.ssh/authorized_keys > $HOME/.ssh/ubuntu-pet/root/authorized_keys
 ```
 
 ### Explanation of podman run command arguments:
 
- * The `$HOME/.ssh/ubuntu-pet` directory is created to store the SSH host keys
-   that container creates. (`mkdir -p` only creates the directory if it doesn't
-   exist already, so it is safe to always run the mkdir as part of this
-   command.)
- * Note that `--rm` will remove the container (and all files created inside)
-   when the container stops. If you want a persistent container, you can remove
-   the `--rm` and the container will persist after it stops. Then you can use
-   `podman start ubuntu-pet` and `podman stop ubuntu-pet` (even after a host
-   reboot), but please note that all files would be destroyed if you ran `podman
-   rm ubuntu-pet`, unless you mount your own extra volumes.
+ * Note that podman `--rm` will remove the container (and all files created
+   inside) when the container stops. If you want a persistent container, you can
+   remove the `--rm` and the container will persist after it stops. Then you can
+   use `podman start ubuntu-pet` and `podman stop ubuntu-pet` (even after a host
+   reboot), and note that all files would be destroyed if you ran `podman rm
+   ubuntu-pet`, unless you mounted your own external volumes.
  * `--name ubuntu-pet` is the name for the container, you can choose a different
    name if you wish.
  * `-p 2222:22` allows SSH access to the container on the host port 2222.
@@ -96,8 +107,9 @@ mosh ubuntu-pet
 ### Automate startup with systemd
 
 You can use systemd to start the container on system boot. Copy (or symlink) the
-`ubuntu-pet.service` file into the directory `$HOME/.config/systemd/user`
-(create the directory if it does not exist.)
+[ubuntu-pet.service](https://raw.githubusercontent.com/PlenusPyramis/dockerfiles/master/ubuntu-pet/ubuntu-pet.service)
+file into the directory `$HOME/.config/systemd/user` (create the directory if it
+does not exist.)
 
 Enable systemd "lingering" for your account. This will allow systemd to
 automatically start your user services on bootup (you only need to run this once

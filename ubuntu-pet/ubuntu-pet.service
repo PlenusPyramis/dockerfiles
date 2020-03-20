@@ -4,11 +4,17 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
+Environment="CONTAINER=ubuntu-pet"
+Environment="IMAGE=plenuspyramis/ubuntu-pet"
+Environment="SSH_PORT=2222"
+Environment="MOSH_PORTS=60000-60010"
 TimeoutStartSec=0
-ExecStartPre=-/bin/podman kill ubuntu-pet
-ExecStartPre=-/bin/podman rm -i ubuntu-pet
-ExecStartPre=mkdir -p ${HOME}/.ssh/ubuntu-pet
-ExecStart=/bin/podman run --name ubuntu-pet --rm -p 2222:22 -p 60000-60010:60000-60010/udp -v ${HOME}/.ssh/ubuntu-pet:/etc/ssh/keys:Z -v ${HOME}/.ssh/authorized_keys:/root/.ssh/authorized_keys:ro plenuspyramis/ubuntu-pet
+ExecStartPre=-/bin/podman kill ${CONTAINER}
+ExecStartPre=-/bin/podman rm ${CONTAINER}
+ExecStartPre=mkdir -p ${HOME}/.ssh/${CONTAINER}/root
+ExecStartPre=touch ${HOME}/.ssh/${CONTAINER}/root/authorized_keys
+ExecStartPre=chmod 600 ${HOME}/.ssh/${CONTAINER}/root/authorized_keys
+ExecStart=/bin/podman run --name ${CONTAINER} --rm -p ${SSH_PORT}:22 -p ${MOSH_PORTS}:${MOSH_PORTS}/udp -v ${HOME}/.ssh/${CONTAINER}:/etc/ssh/keys:Z ${IMAGE}
 
 [Install]
 WantedBy=default.target

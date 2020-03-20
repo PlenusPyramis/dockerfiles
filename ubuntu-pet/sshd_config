@@ -3,6 +3,7 @@ PasswordAuthentication no
 HostKey /etc/ssh/keys/ssh_host_rsa_key
 HostKey /etc/ssh/keys/ssh_host_ecdsa_key
 HostKey /etc/ssh/keys/ssh_host_ed25519_key
+AuthorizedKeysFile /etc/ssh/keys/%u/authorized_keys
 X11Forwarding yes
 PrintMotd no
 AcceptEnv LANG LC_*

@@ -6,10 +6,10 @@ This is a VPS style pet container with an SSH(+MOSH) server.
 wrong.](https://jpetazzo.github.io/2014/06/23/docker-ssh-considered-evil/)
 
 However, a pretty good argument can be made for using a docker container as a
-development environment. In this mode, having a persistent stateful environment
-that you can have a normal ssh connection to, is exactly what you want. Another
-good role is for a bastion/jump server, using this container you can use MOSH to
-connect to other machines that don't have MOSH installed, for example.
+development environment, and having a normal SSH connection to that environment
+is often ideal for tools like Ansible or Emacs' TRAMP. Another good role is for a
+bastion/jump server; using this container you can use MOSH to connect to other
+machines that don't have MOSH installed, for example.
 
 This is not recommended for any production service role.
 
@@ -29,7 +29,7 @@ Basic command you would run if you don't want to use systemd:
 mkdir -p $HOME/.ssh/ubuntu-pet/root && \
 touch $HOME/.ssh/ubuntu-pet/root/authorized_keys && \
 chmod 0600 $HOME/.ssh/ubuntu-pet/root/authorized_keys && \
-podman run --name ubuntu-pet --rm -d \
+podman run --rm -d --name ubuntu-pet --hostname ubuntu-pet \
     -p 2222:22 -p 60000-60010:60000-60010/udp \
     -v $HOME/.ssh/ubuntu-pet:/etc/ssh/keys:Z \
     plenuspyramis/ubuntu-pet
@@ -54,21 +54,19 @@ cat $HOME/.ssh/authorized_keys > $HOME/.ssh/ubuntu-pet/root/authorized_keys
    remove the `--rm` and the container will persist after it stops. Then you can
    use `podman start ubuntu-pet` and `podman stop ubuntu-pet` (even after a host
    reboot), and note that all files would be destroyed if you ran `podman rm
-   ubuntu-pet`, unless you mounted your own external volumes.
+   ubuntu-pet`, unless you mounted your own external volumes. I do not run my
+   own containers this way, so I wish to keep the `--rm` for myself. See
+   [Stateless](#stateless) for more information.
  * `--name ubuntu-pet` is the name for the container, you can choose a different
    name if you wish.
+ * `--hostname ubuntu-pet` is the hostname for the container, you can choose a
+   different hostname if you wish.
  * `-p 2222:22` allows SSH access to the container on the host port 2222.
  * `-p 60000-60010:60000-60010/udp` allows MOSH access to the container, it maps
    a range of UDP ports. Mosh by default uses the range of 60000-61000, however
    I found I do not need more than 10 ports so I expose fewer.
- * `-v $HOME/.ssh/ubuntu-pet:/etc/ssh/keys` mounts the persistent host-keys
-   directory (if this is not mounted, it will generate new host-keys everytime
-   the container starts)
- * `-v $HOME/.ssh/authorized_keys:/root/.ssh/authorized_keys:ro` mounts the
-   authorized ssh public keys allowed to connect to the container. Access will
-   be denied unless your key is listed in this file. This example uses the same
-   authorized_keys file from the host SSH service. You can use a seperate file
-   if you wish the access to be different for the container than for the host.
+ * `-v $HOME/.ssh/ubuntu-pet:/etc/ssh/keys` mounts the persistent host-keys and
+   user authorized_keys directory. 
  * The final `plenuspyramis/ubuntu-pet` tells podman to use the prebuilt image
    from the docker hub, but you can instead build and use your own image
    locally.
@@ -141,3 +139,33 @@ systemctl --user start ubuntu-pet
 Reboot the host in order to test that the service is started automatically on
 boot.
 
+### Stateless 
+
+As discussed earlier, podman is running the container with `--rm` which means
+that any files you edit that you have not mapped to an external volume,
+(including any packages that you install with apt-get etc.) are LOST whenever
+the container stops or restarts. This is my preferred way of working with
+containers, because it means that I always start from a known clean base image.
+If I need to add packages, or create a new user, I create a new Dockerfile and
+build a new image based from this.
+
+For example, create a new file called `Dockerfile-ryan`:
+
+```
+FROM plenuspyramis/ubuntu-pet
+
+RUN apt-get update -y && \
+    apt-get install -y zsh && \
+    useradd -m ryan --shell /bin/zsh
+```
+
+Build the container image:
+
+```
+podman build -t ubuntu-ryan -f Dockerfile-ryan
+```
+
+Now change the `IMAGE` variable in the systemd service file to `ubuntu-ryan`
+(instead of `plenuspyramis/ubuntu-pet`) and restart the service. Your container
+will now have a `ryan` account available and `zsh` installed. This is how you
+can build whatever sort of container image you want.

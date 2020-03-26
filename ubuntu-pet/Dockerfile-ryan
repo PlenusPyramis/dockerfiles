@@ -1,0 +1,5 @@
+FROM plenuspyramis/ubuntu-pet
+
+RUN apt-get update -y && \
+    apt-get install -y zsh && \
+    useradd -m ryan --shell /bin/zsh

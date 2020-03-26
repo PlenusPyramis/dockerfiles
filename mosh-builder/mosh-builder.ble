@@ -1,0 +1,20 @@
+#!/usr/local/bin/bashible
+
+@ Check MOSH_VERSION
+  - when var_empty MOSH_VERSION
+  - fail "MOSH_VERSION not set"
+
+@ Get Mosh source code and extract
+  - when not test -d mosh-${MOSH_VERSION}
+  - curl -L https://github.com/mobile-shell/mosh/releases/download/mosh-${MOSH_VERSION}/mosh-${MOSH_VERSION}.tar.gz -o mosh-${MOSH_VERSION}.tar.gz
+  - tar xfv mosh-${MOSH_VERSION}.tar.gz
+
+@ Build Mosh
+  - cd mosh-${MOSH_VERSION}
+  - mkdir -p usr
+  - set_var LDFLAGS "$(pkg-config --libs-only-L zlib) -static"
+  - ./autogen.sh
+  - ./configure --prefix=$(pwd)/usr
+  - make
+  - make install
+

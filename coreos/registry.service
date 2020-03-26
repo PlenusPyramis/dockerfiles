@@ -1,0 +1,14 @@
+[Unit]
+Description=INSECURE Container Registry
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+TimeoutStartSec=0
+ExecStartPre=-/bin/podman kill registry
+ExecStartPre=-/bin/podman rm registry
+ExecStartPre=/bin/podman pull registry:2
+ExecStart=/bin/podman run --name registry -p 5000:5000 registry:2
+
+[Install]
+WantedBy=default.target
